@@ -207,7 +207,7 @@ function CreateUserDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="new-username">Usuario</Label>
+            <Label htmlFor="new-username" required>Usuario</Label>
             <Input
               id="new-username"
               value={username}
@@ -218,7 +218,7 @@ function CreateUserDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="new-password">Contraseña</Label>
+            <Label htmlFor="new-password" required>Contraseña</Label>
             <PasswordInput
               id="new-password"
               value={password}
@@ -289,7 +289,7 @@ function CreateTenantDialog({ onCreated }: { onCreated: (tenant: TenantResponse)
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="tenant-name">Nombre del taller</Label>
+            <Label htmlFor="tenant-name" required>Nombre del taller</Label>
             <Input
               id="tenant-name"
               value={name}

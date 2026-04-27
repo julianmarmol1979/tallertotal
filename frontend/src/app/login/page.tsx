@@ -87,7 +87,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isAdmin && (
               <div className="space-y-1.5">
-                <Label htmlFor="username">Usuario</Label>
+                <Label htmlFor="username" required>Usuario</Label>
                 <Input
                   id="username"
                   value={username}
@@ -99,7 +99,7 @@ export default function LoginPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" required>Contraseña</Label>
               <PasswordInput
                 id="password"
                 value={password}

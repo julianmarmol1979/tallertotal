@@ -104,11 +104,11 @@ export default function ClientesPage() {
             </DialogHeader>
             <div className="grid gap-3 py-2">
               <div className="space-y-1">
-                <Label>Nombre *</Label>
+                <Label required>Nombre</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Juan García" />
               </div>
               <div className="space-y-1">
-                <Label>Teléfono *</Label>
+                <Label required>Teléfono</Label>
                 <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+54 11 1234-5678" />
               </div>
               <div className="space-y-1">

@@ -111,7 +111,7 @@ export default function VehiculosPage() {
             <div className="grid gap-3 py-2">
               {/* Customer selector */}
               <div className="space-y-1">
-                <Label>Cliente *</Label>
+                <Label required>Cliente</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                   <Input
@@ -144,7 +144,7 @@ export default function VehiculosPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>Placa *</Label>
+                  <Label required>Placa</Label>
                   <Input
                     value={form.licensePlate}
                     onChange={(e) => setForm({ ...form, licensePlate: e.target.value.toUpperCase() })}
@@ -153,7 +153,7 @@ export default function VehiculosPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Año *</Label>
+                  <Label required>Año</Label>
                   <Input
                     type="number" min={1900} max={CURRENT_YEAR + 1}
                     value={form.year}
@@ -161,11 +161,11 @@ export default function VehiculosPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Marca *</Label>
+                  <Label required>Marca</Label>
                   <Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Toyota" />
                 </div>
                 <div className="space-y-1">
-                  <Label>Modelo *</Label>
+                  <Label required>Modelo</Label>
                   <Input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Corolla" />
                 </div>
                 <div className="space-y-1">
