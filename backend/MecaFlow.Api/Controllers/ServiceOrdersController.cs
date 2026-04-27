@@ -1,6 +1,7 @@
 using MecaFlow.Api.Data;
 using MecaFlow.Api.DTOs;
 using MecaFlow.Api.Models;
+using MecaFlow.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace MecaFlow.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ServiceOrdersController(AppDbContext db) : ControllerBase
+public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp) : ControllerBase
 {
     private Guid TenantId => Guid.Parse(User.FindFirst("tenantId")!.Value);
 
@@ -73,6 +74,7 @@ public class ServiceOrdersController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         var created = await BaseQuery().FirstAsync(o => o.Id == order.Id);
+        _ = whatsApp.SendOrderCreatedAsync(created);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToDto(created));
     }
 
@@ -114,6 +116,7 @@ public class ServiceOrdersController(AppDbContext db) : ControllerBase
             order.CompletedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
+        _ = whatsApp.SendStatusChangedAsync(order, status);
         return MapToDto(order);
     }
 }
