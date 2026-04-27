@@ -322,8 +322,10 @@ export default function AdminPage() {
     try {
       const data = await adminApi.getTenants();
       setTenants(data);
-    } catch {
-      toast.error("No se pudo cargar la lista de talleres");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Error al cargar talleres: ${msg}`);
+      console.error("getTenants error:", err);
     } finally {
       setLoading(false);
     }
