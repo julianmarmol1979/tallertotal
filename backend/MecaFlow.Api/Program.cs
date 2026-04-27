@@ -19,6 +19,8 @@ var jwtSecret = builder.Configuration["JWT_SECRET"] ?? throw new InvalidOperatio
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // Keep claim names as-is from the JWT (don't remap "role" → long URI)
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -28,7 +30,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = "mecaflow",
             ValidAudience = "mecaflow",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-            RoleClaimType = "role", // JWT uses "role", not the default ClaimTypes.Role URI
+            RoleClaimType = "role",
             NameClaimType = "username",
         };
     });
