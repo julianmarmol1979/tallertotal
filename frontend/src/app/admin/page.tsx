@@ -5,6 +5,7 @@ import { adminApi, type TenantResponse, type UserResponse } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -218,9 +219,8 @@ function CreateUserDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="new-password">Contraseña</Label>
-            <Input
+            <PasswordInput
               id="new-password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"

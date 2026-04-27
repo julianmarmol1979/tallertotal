@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { MecaFlowLogo } from "@/components/MecaFlowLogo";
 import { toast } from "sonner";
 
@@ -99,9 +100,8 @@ export default function LoginPage() {
             )}
             <div className="space-y-1.5">
               <Label htmlFor="password">Contraseña</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
