@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace MecaFlow.Api.DTOs;
 
 public record CreateServiceItemDto(
-    [Required, MaxLength(200)] string Description,
+    [MaxLength(200)] string? Description,
     ServiceItemType Type,
     [Range(0.01, double.MaxValue)] decimal Quantity,
     [Range(0, double.MaxValue)] decimal UnitPrice

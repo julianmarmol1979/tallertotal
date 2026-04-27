@@ -54,8 +54,8 @@ export default function NuevaOrdenPage() {
       });
       toast.success("Orden creada correctamente");
       router.push("/ordenes");
-    } catch {
-      toast.error("Error al crear la orden");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al crear la orden");
       setSubmitting(false);
     }
   };
