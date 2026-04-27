@@ -8,7 +8,8 @@ import type {
   CreateServiceOrderDto,
 } from "@/types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000";
+// All calls go through the Next.js proxy which adds the JWT from httpOnly cookie
+const BASE_URL = "/api/proxy";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -26,13 +27,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 // Customers
 export const customersApi = {
   getAll: (search?: string) =>
-    request<Customer[]>(`/api/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`),
-  getById: (id: string) => request<Customer>(`/api/customers/${id}`),
+    request<Customer[]>(`/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+  getById: (id: string) => request<Customer>(`/customers/${id}`),
   create: (dto: CreateCustomerDto) =>
-    request<Customer>("/api/customers", { method: "POST", body: JSON.stringify(dto) }),
+    request<Customer>("/customers", { method: "POST", body: JSON.stringify(dto) }),
   update: (id: string, dto: CreateCustomerDto) =>
-    request<Customer>(`/api/customers/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
-  delete: (id: string) => request<void>(`/api/customers/${id}`, { method: "DELETE" }),
+    request<Customer>(`/customers/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
+  delete: (id: string) => request<void>(`/customers/${id}`, { method: "DELETE" }),
 };
 
 // Vehicles
@@ -42,11 +43,11 @@ export const vehiclesApi = {
     if (params?.plate) qs.set("plate", params.plate);
     if (params?.customerId) qs.set("customerId", params.customerId);
     const q = qs.toString();
-    return request<Vehicle[]>(`/api/vehicles${q ? `?${q}` : ""}`);
+    return request<Vehicle[]>(`/vehicles${q ? `?${q}` : ""}`);
   },
-  getById: (id: string) => request<Vehicle>(`/api/vehicles/${id}`),
+  getById: (id: string) => request<Vehicle>(`/vehicles/${id}`),
   create: (dto: CreateVehicleDto) =>
-    request<Vehicle>("/api/vehicles", { method: "POST", body: JSON.stringify(dto) }),
+    request<Vehicle>("/vehicles", { method: "POST", body: JSON.stringify(dto) }),
 };
 
 // Service Orders
@@ -57,14 +58,43 @@ export const serviceOrdersApi = {
     if (params?.plate) qs.set("plate", params.plate);
     if (params?.customer) qs.set("customer", params.customer);
     const q = qs.toString();
-    return request<ServiceOrder[]>(`/api/serviceorders${q ? `?${q}` : ""}`);
+    return request<ServiceOrder[]>(`/serviceorders${q ? `?${q}` : ""}`);
   },
-  getById: (id: string) => request<ServiceOrder>(`/api/serviceorders/${id}`),
+  getById: (id: string) => request<ServiceOrder>(`/serviceorders/${id}`),
   create: (dto: CreateServiceOrderDto) =>
-    request<ServiceOrder>("/api/serviceorders", { method: "POST", body: JSON.stringify(dto) }),
+    request<ServiceOrder>("/serviceorders", { method: "POST", body: JSON.stringify(dto) }),
   updateStatus: (id: string, status: ServiceOrderStatus) =>
-    request<ServiceOrder>(`/api/serviceorders/${id}/status`, {
+    request<ServiceOrder>(`/serviceorders/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify(status),
     }),
 };
+
+// Admin API — calls go to proxy which forwards to backend with SuperAdmin JWT
+export const adminApi = {
+  getTenants: () => request<TenantResponse[]>("/admin/tenants"),
+  createTenant: (name: string) =>
+    request<TenantResponse>("/admin/tenants", { method: "POST", body: JSON.stringify({ name }) }),
+  toggleTenant: (id: string) =>
+    request<{ isActive: boolean }>(`/admin/tenants/${id}/toggle`, { method: "PATCH" }),
+  getUsers: (tenantId: string) => request<UserResponse[]>(`/admin/tenants/${tenantId}/users`),
+  createUser: (tenantId: string, dto: { username: string; password: string; role: string }) =>
+    request<UserResponse>(`/admin/tenants/${tenantId}/users`, { method: "POST", body: JSON.stringify(dto) }),
+  deleteUser: (userId: string) => request<void>(`/admin/users/${userId}`, { method: "DELETE" }),
+};
+
+// Admin types
+export interface TenantResponse {
+  id: string;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+  userCount: number;
+}
+
+export interface UserResponse {
+  id: string;
+  username: string;
+  role: string;
+  createdAt: string;
+}

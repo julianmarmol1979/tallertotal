@@ -1,6 +1,7 @@
 using MecaFlow.Api.Data;
 using MecaFlow.Api.DTOs;
 using MecaFlow.Api.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,30 +9,25 @@ namespace MecaFlow.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ServiceOrdersController(AppDbContext db) : ControllerBase
 {
+    private Guid TenantId => Guid.Parse(User.FindFirst("tenantId")!.Value);
+
     private static ServiceOrderDto MapToDto(ServiceOrder o) => new(
-        o.Id,
-        o.VehicleId,
-        o.Vehicle.LicensePlate,
+        o.Id, o.VehicleId, o.Vehicle.LicensePlate,
         $"{o.Vehicle.Brand} {o.Vehicle.Model} {o.Vehicle.Year}",
-        o.Vehicle.Customer.Name,
-        o.Vehicle.Customer.Phone,
-        o.Status,
-        o.DiagnosisNotes,
-        o.MileageIn,
-        o.AssignedMechanic,
-        o.TotalEstimate,
-        o.TotalFinal,
-        o.CreatedAt,
-        o.CompletedAt,
+        o.Vehicle.Customer.Name, o.Vehicle.Customer.Phone,
+        o.Status, o.DiagnosisNotes, o.MileageIn, o.AssignedMechanic,
+        o.TotalEstimate, o.TotalFinal, o.CreatedAt, o.CompletedAt,
         o.Items.Select(i => new ServiceItemDto(i.Id, i.Description, i.Type, i.Quantity, i.UnitPrice, i.Total)).ToList()
     );
 
     private IQueryable<ServiceOrder> BaseQuery() =>
         db.ServiceOrders
             .Include(o => o.Vehicle).ThenInclude(v => v.Customer)
-            .Include(o => o.Items);
+            .Include(o => o.Items)
+            .Where(o => o.Vehicle.Customer.TenantId == TenantId);
 
     [HttpGet]
     public async Task<IEnumerable<ServiceOrderDto>> GetAll(
@@ -40,11 +36,9 @@ public class ServiceOrdersController(AppDbContext db) : ControllerBase
         [FromQuery] string? customer)
     {
         var query = BaseQuery().AsQueryable();
-
         if (status.HasValue) query = query.Where(o => o.Status == status);
         if (!string.IsNullOrWhiteSpace(plate)) query = query.Where(o => o.Vehicle.LicensePlate.Contains(plate));
         if (!string.IsNullOrWhiteSpace(customer)) query = query.Where(o => o.Vehicle.Customer.Name.Contains(customer));
-
         return await query.OrderByDescending(o => o.CreatedAt).Select(o => MapToDto(o)).ToListAsync();
     }
 
@@ -59,7 +53,7 @@ public class ServiceOrdersController(AppDbContext db) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ServiceOrderDto>> Create(CreateServiceOrderDto dto)
     {
-        if (!await db.Vehicles.AnyAsync(v => v.Id == dto.VehicleId))
+        if (!await db.Vehicles.AnyAsync(v => v.Id == dto.VehicleId && v.Customer.TenantId == TenantId))
             return BadRequest("Vehicle not found.");
 
         var order = new ServiceOrder
@@ -70,13 +64,9 @@ public class ServiceOrdersController(AppDbContext db) : ControllerBase
             AssignedMechanic = dto.AssignedMechanic,
             Items = dto.Items.Select(i => new ServiceItem
             {
-                Description = i.Description,
-                Type = i.Type,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice
+                Description = i.Description, Type = i.Type, Quantity = i.Quantity, UnitPrice = i.UnitPrice
             }).ToList()
         };
-
         order.TotalEstimate = order.Items.Sum(i => i.Quantity * i.UnitPrice);
 
         db.ServiceOrders.Add(order);
@@ -105,17 +95,12 @@ public class ServiceOrdersController(AppDbContext db) : ControllerBase
         db.ServiceItems.RemoveRange(order.Items);
         order.Items = dto.Items.Select(i => new ServiceItem
         {
-            ServiceOrderId = order.Id,
-            Description = i.Description,
-            Type = i.Type,
-            Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice
+            ServiceOrderId = order.Id, Description = i.Description,
+            Type = i.Type, Quantity = i.Quantity, UnitPrice = i.UnitPrice
         }).ToList();
 
         await db.SaveChangesAsync();
-
-        var updated = await BaseQuery().FirstAsync(o => o.Id == id);
-        return MapToDto(updated);
+        return MapToDto(await BaseQuery().FirstAsync(o => o.Id == id));
     }
 
     [HttpPatch("{id:guid}/status")]

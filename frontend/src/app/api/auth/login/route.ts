@@ -1,24 +1,36 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+
+const BACKEND = process.env.BACKEND_URL ?? "http://localhost:5123";
 
 export async function POST(request: Request) {
-  const { username, password } = await request.json();
-  const secret = process.env.AUTH_SECRET!;
+  const body = await request.json();
 
-  if (
-    username === process.env.AUTH_USERNAME &&
-    password === process.env.AUTH_PASSWORD
-  ) {
-    const response = NextResponse.json({ ok: true });
-    response.cookies.set(SESSION_COOKIE, secret, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
-    return response;
+  // Determine if this is an admin login or regular user login
+  const endpoint = body.password && !body.username
+    ? `${BACKEND}/api/auth/admin-login`
+    : `${BACKEND}/api/auth/login`;
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Error de autenticación" }));
+    return NextResponse.json(err, { status: res.status });
   }
 
-  return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
+  const data = await res.json();
+  const response = NextResponse.json({ ok: true, role: data.role, tenantName: data.tenantName });
+
+  response.cookies.set("mecaflow_token", data.token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
+  });
+
+  return response;
 }

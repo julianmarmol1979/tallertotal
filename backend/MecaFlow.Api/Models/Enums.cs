@@ -13,3 +13,9 @@ public enum ServiceItemType
     Labor,
     Part
 }
+
+public enum UserRole
+{
+    Owner,
+    Mechanic
+}

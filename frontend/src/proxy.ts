@@ -1,18 +1,42 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { jwtVerify } from "jose";
 
-export function proxy(request: NextRequest) {
-  const session = request.cookies.get(SESSION_COOKIE)?.value;
-  const secret = process.env.AUTH_SECRET;
+const PUBLIC_PATHS = ["/login", "/api/auth"];
 
-  if (!session || session !== secret) {
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Allow public paths
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  const token = request.cookies.get("mecaflow_token")?.value;
+  const secret = process.env.JWT_SECRET;
+
+  if (!token || !secret) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.next();
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      issuer: "mecaflow",
+      audience: "mecaflow",
+    });
+
+    // Protect /admin routes — SuperAdmin only
+    const role = payload["role"] as string | undefined;
+    if (pathname.startsWith("/admin") && role !== "SuperAdmin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    return NextResponse.next();
+  } catch {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
 }
 
 export const config = {
-  matcher: ["/((?!login|api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
