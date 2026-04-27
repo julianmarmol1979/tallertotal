@@ -103,7 +103,7 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
               {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.value}
@@ -131,58 +131,105 @@ export default function DashboardPage() {
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-sm text-gray-400">No hay órdenes que mostrar</div>
           ) : (
-            <div className="overflow-x-auto rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
-                    <TableHead>Placa</TableHead>
-                    <TableHead>Vehículo</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Mecánico</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Total estimado</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Cambiar estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-gray-50">
-                      <TableCell className="font-mono font-semibold text-sm">{order.licensePlate}</TableCell>
-                      <TableCell className="text-sm">{order.vehicleDescription}</TableCell>
-                      <TableCell>
-                        <div className="text-sm font-medium">{order.customerName}</div>
-                        <div className="text-xs text-gray-400">{order.customerPhone}</div>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600">{order.assignedMechanic ?? "—"}</TableCell>
-                      <TableCell><StatusBadge status={order.status} /></TableCell>
-                      <TableCell className="text-right text-sm font-medium">
+            <>
+              {/* Mobile: cards */}
+              <div className="md:hidden space-y-3">
+                {filtered.map((order) => (
+                  <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="font-mono font-bold text-sm text-gray-900">{order.licensePlate}</span>
+                        <p className="text-sm text-gray-600 mt-0.5">{order.vehicleDescription}</p>
+                      </div>
+                      <StatusBadge status={order.status} />
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium text-gray-900">{order.customerName}</p>
+                        <p className="text-xs text-gray-400">{order.customerPhone}</p>
+                      </div>
+                      <p className="font-semibold text-gray-900">
                         ${order.totalEstimate.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500">
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-gray-400">
                         {new Date(order.createdAt).toLocaleDateString("es-AR")}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={order.status}
-                          onValueChange={(v) => handleStatusChange(order.id, v as ServiceOrderStatus)}
-                        >
-                          <SelectTrigger className="h-8 w-36 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Open">Abierta</SelectItem>
-                            <SelectItem value="InProgress">En progreso</SelectItem>
-                            <SelectItem value="Completed">Completada</SelectItem>
-                            <SelectItem value="Cancelled">Cancelada</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
+                        {order.assignedMechanic && ` · ${order.assignedMechanic}`}
+                      </p>
+                      <Select
+                        value={order.status}
+                        onValueChange={(v) => handleStatusChange(order.id, v as ServiceOrderStatus)}
+                      >
+                        <SelectTrigger className="h-7 w-32 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Open">Abierta</SelectItem>
+                          <SelectItem value="InProgress">En progreso</SelectItem>
+                          <SelectItem value="Completed">Completada</SelectItem>
+                          <SelectItem value="Cancelled">Cancelada</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden md:block overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead>Placa</TableHead>
+                      <TableHead>Vehículo</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Mecánico</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Total estimado</TableHead>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Cambiar estado</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((order) => (
+                      <TableRow key={order.id} className="hover:bg-gray-50">
+                        <TableCell className="font-mono font-semibold text-sm">{order.licensePlate}</TableCell>
+                        <TableCell className="text-sm">{order.vehicleDescription}</TableCell>
+                        <TableCell>
+                          <div className="text-sm font-medium">{order.customerName}</div>
+                          <div className="text-xs text-gray-400">{order.customerPhone}</div>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">{order.assignedMechanic ?? "—"}</TableCell>
+                        <TableCell><StatusBadge status={order.status} /></TableCell>
+                        <TableCell className="text-right text-sm font-medium">
+                          ${order.totalEstimate.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {new Date(order.createdAt).toLocaleDateString("es-AR")}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={order.status}
+                            onValueChange={(v) => handleStatusChange(order.id, v as ServiceOrderStatus)}
+                          >
+                            <SelectTrigger className="h-8 w-36 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Open">Abierta</SelectItem>
+                              <SelectItem value="InProgress">En progreso</SelectItem>
+                              <SelectItem value="Completed">Completada</SelectItem>
+                              <SelectItem value="Cancelled">Cancelada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
