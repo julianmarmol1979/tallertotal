@@ -27,7 +27,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = "mecaflow",
             ValidAudience = "mecaflow",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+            RoleClaimType = "role", // JWT uses "role", not the default ClaimTypes.Role URI
+            NameClaimType = "username",
         };
     });
 
