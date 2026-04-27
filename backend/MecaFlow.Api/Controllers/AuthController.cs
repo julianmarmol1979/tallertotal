@@ -49,7 +49,7 @@ public class AuthController(AppDbContext db, IConfiguration config) : Controller
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new Claim("tenantId", tenantId.ToString()),
             new Claim("username", username),
-            new Claim(ClaimTypes.Role, role),
+            new Claim("role", role),
         };
 
         var token = new JwtSecurityToken(
