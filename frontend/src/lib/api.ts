@@ -48,6 +48,7 @@ export const vehiclesApi = {
   getById: (id: string) => request<Vehicle>(`/vehicles/${id}`),
   create: (dto: CreateVehicleDto) =>
     request<Vehicle>("/vehicles", { method: "POST", body: JSON.stringify(dto) }),
+  delete: (id: string) => request<void>(`/vehicles/${id}`, { method: "DELETE" }),
 };
 
 // Service Orders

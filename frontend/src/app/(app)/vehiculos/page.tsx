@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Car, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Car, Search } from "lucide-react";
 import { toast } from "sonner";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -85,6 +85,8 @@ export default function VehiculosPage() {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -152,6 +154,21 @@ export default function VehiculosPage() {
   const filteredCustomers = customers.filter((c) =>
     !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)
   );
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await vehiclesApi.delete(deleteTarget.id);
+      toast.success("Vehículo eliminado");
+      setDeleteTarget(null);
+      load();
+    } catch {
+      toast.error("Error al eliminar vehículo");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const dto = formToDto(form);
   const canSave = !!dto.customerId && !!dto.licensePlate && !!dto.brand && !!dto.model;
@@ -352,9 +369,18 @@ export default function VehiculosPage() {
                       </TableCell>
                       <TableCell className="text-xs text-gray-500 max-w-[140px] truncate">{v.notes ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(v)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon-sm" onClick={() => openEdit(v)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon-sm"
+                            onClick={() => setDeleteTarget(v)}
+                            className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -364,6 +390,24 @@ export default function VehiculosPage() {
           )}
         </CardContent>
       </Card>
+      {/* Delete confirmation */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Eliminar vehículo</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">
+            ¿Eliminar <span className="font-semibold">{deleteTarget?.licensePlate} — {deleteTarget?.brand} {deleteTarget?.model}</span>?
+            Se eliminarán también sus órdenes de servicio.
+          </p>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Eliminando..." : "Sí, eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

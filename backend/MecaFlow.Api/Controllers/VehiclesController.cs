@@ -67,6 +67,18 @@ public class VehiclesController(AppDbContext db) : ControllerBase
             new VehicleDto(vehicle.Id, vehicle.CustomerId, vehicle.Customer.Name, vehicle.LicensePlate, vehicle.Brand, vehicle.Model, vehicle.Year, vehicle.Color, vehicle.Notes));
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var vehicle = await db.Vehicles
+            .Include(v => v.Customer)
+            .FirstOrDefaultAsync(v => v.Id == id && v.Customer.TenantId == TenantId);
+        if (vehicle is null) return NotFound();
+        db.Vehicles.Remove(vehicle);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<VehicleDto>> Update(Guid id, CreateVehicleDto dto)
     {

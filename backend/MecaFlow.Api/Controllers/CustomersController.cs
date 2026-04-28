@@ -23,7 +23,10 @@ public class CustomersController(AppDbContext db) : ControllerBase
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(c => c.Name.Contains(search) || c.Phone.Contains(search));
+        {
+            var lower = search.ToLower();
+            query = query.Where(c => c.Name.ToLower().Contains(lower) || c.Phone.Contains(search));
+        }
 
         return await query
             .OrderByDescending(c => c.CreatedAt)
