@@ -71,7 +71,7 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
             using var http = new HttpClient();
             http.DefaultRequestHeaders.Add("apikey", ApiKey);
 
-            var payload = JsonSerializer.Serialize(new { number = phone, text }, JsonOpts);
+            var payload = JsonSerializer.Serialize(new { number = phone, textMessage = new { text } }, JsonOpts);
             var content = new StringContent(payload, Encoding.UTF8, "application/json");
 
             var response = await http.PostAsync($"{BaseUrl}/message/sendText/{Instance}", content);
