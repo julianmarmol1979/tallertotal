@@ -16,10 +16,6 @@ async function forward(req: Request, params: { path: string[] }, method: string)
   const res = await fetch(url, { method, headers, body });
   const text = await res.text();
 
-  if (!res.ok) {
-    console.error(`[proxy] ${method} ${url} → ${res.status}`, text.slice(0, 500));
-  }
-
   return new NextResponse(text, {
     status: res.status,
     headers: { "Content-Type": res.headers.get("Content-Type") ?? "application/json" },
