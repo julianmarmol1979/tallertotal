@@ -83,6 +83,43 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
         }
     }
 
+    public async Task<bool> TryReconnectAsync()
+    {
+        if (!IsConfigured) return false;
+
+        try
+        {
+            using var http = BuildClient();
+
+            // Trigger connect (uses existing Baileys session files if present)
+            await http.GetAsync($"{BaseUrl}/instance/connect/{Instance}");
+
+            // Give Baileys up to 15 seconds to restore the session
+            for (var i = 0; i < 3; i++)
+            {
+                await Task.Delay(5_000);
+                var stateRes = await http.GetAsync($"{BaseUrl}/instance/connectionState/{Instance}");
+                var body = await stateRes.Content.ReadAsStringAsync();
+                var json = System.Text.Json.Nodes.JsonNode.Parse(body);
+                var state = json?["instance"]?["state"]?.GetValue<string>();
+
+                if (string.Equals(state, "open", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.LogInformation("WhatsApp auto-reconnect succeeded — state is now open");
+                    return true;
+                }
+            }
+
+            logger.LogWarning("WhatsApp auto-reconnect did not reach 'open' after 15 s — manual QR scan required");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "WhatsApp TryReconnect failed");
+            return false;
+        }
+    }
+
     public async Task<string?> SendTestAsync(string phone, string message)
     {
         if (!IsConfigured) return "Not configured";

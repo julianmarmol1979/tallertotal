@@ -8,6 +8,11 @@ public interface IWhatsAppService
     Task SendStatusChangedAsync(ServiceOrder order, ServiceOrderStatus newStatus);
     Task<WhatsAppStatus> GetStatusAsync();
     Task<string?> SendTestAsync(string phone, string message);
+    /// <summary>
+    /// Triggers /instance/connect and waits to see if the session auto-restores.
+    /// Returns true if state reached "open" without needing a QR scan.
+    /// </summary>
+    Task<bool> TryReconnectAsync();
 }
 
 public record WhatsAppStatus(
