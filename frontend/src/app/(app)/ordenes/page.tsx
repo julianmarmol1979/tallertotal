@@ -22,6 +22,13 @@ const STATUS_TABS: { value: ServiceOrderStatus | "all"; label: string }[] = [
   { value: "Cancelled", label: "Canceladas" },
 ];
 
+const STATUS_LABELS: Record<ServiceOrderStatus, string> = {
+  Open: "Abierta",
+  InProgress: "En progreso",
+  Completed: "Completada",
+  Cancelled: "Cancelada",
+};
+
 export default function OrdenesPage() {
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,10 +224,10 @@ export default function OrdenesPage() {
                       <TableCell>
                         <Select
                           value={order.status}
-                          onValueChange={(v) => handleStatusChange(order.id, v as ServiceOrderStatus)}
+                          onValueChange={(v) => v && handleStatusChange(order.id, v as ServiceOrderStatus)}
                         >
                           <SelectTrigger className="h-8 w-36 text-xs">
-                            <SelectValue />
+                            <span className="flex-1 text-left">{STATUS_LABELS[order.status]}</span>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Open">Abierta</SelectItem>
