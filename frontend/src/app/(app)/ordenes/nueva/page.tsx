@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { serviceOrdersApi } from "@/lib/api";
-import type { Customer, Vehicle, CreateServiceItemDto } from "@/types";
+import { serviceOrdersApi, mechanicsApi } from "@/lib/api";
+import type { Customer, Vehicle, CreateServiceItemDto, Mechanic } from "@/types";
 import { CustomerSearch } from "@/components/CustomerSearch";
 import { VehicleSelect } from "@/components/VehicleSelect";
 import { ServiceItemsForm } from "@/components/ServiceItemsForm";
@@ -29,6 +29,11 @@ export default function NuevaOrdenPage() {
   const [assignedMechanic, setAssignedMechanic] = useState("");
   const [items, setItems] = useState<CreateServiceItemDto[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [mechanics, setMechanics] = useState<Mechanic[]>([]);
+
+  useEffect(() => {
+    mechanicsApi.getAll(true).then(setMechanics).catch(() => {});
+  }, []);
 
   const handleSelectCustomer = (c: Customer) => {
     setCustomer(c);
@@ -163,11 +168,24 @@ export default function NuevaOrdenPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Mecánico asignado</Label>
-                <Input
-                  value={assignedMechanic}
-                  onChange={(e) => setAssignedMechanic(e.target.value)}
-                  placeholder="Nombre del mecánico"
-                />
+                {mechanics.length > 0 ? (
+                  <select
+                    value={assignedMechanic}
+                    onChange={(e) => setAssignedMechanic(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring/50"
+                  >
+                    <option value="">Sin asignar</option>
+                    {mechanics.map((m) => (
+                      <option key={m.id} value={m.name}>{m.name}{m.specialty ? ` — ${m.specialty}` : ""}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    value={assignedMechanic}
+                    onChange={(e) => setAssignedMechanic(e.target.value)}
+                    placeholder="Nombre del mecánico"
+                  />
+                )}
               </div>
               <div className="space-y-1">
                 <Label>Kilometraje de entrada</Label>
