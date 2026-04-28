@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { adminApi, type TenantResponse, type UserResponse } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Loader2, Trash2, Power } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Loader2, Trash2, Power, Wifi, WifiOff, Send } from "lucide-react";
+import { adminApi, type TenantResponse, type UserResponse, type WhatsAppStatusResponse } from "@/lib/api";
 
 // ── Tenant row ────────────────────────────────────────────────────────────────
 
@@ -311,6 +311,114 @@ function CreateTenantDialog({ onCreated }: { onCreated: (tenant: TenantResponse)
   );
 }
 
+// ── WhatsApp status card ──────────────────────────────────────────────────────
+
+function WhatsAppCard() {
+  const [status, setStatus] = useState<WhatsAppStatusResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [testPhone, setTestPhone] = useState("");
+  const [testing, setTesting] = useState(false);
+
+  const checkStatus = async () => {
+    setLoading(true);
+    try {
+      setStatus(await adminApi.getWhatsAppStatus());
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al verificar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendTest = async () => {
+    if (!testPhone.trim()) return;
+    setTesting(true);
+    try {
+      await adminApi.testWhatsApp(testPhone.trim());
+      toast.success("Mensaje de prueba enviado ✓");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al enviar");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const connected = status?.connectionState?.toLowerCase() === "open";
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">WhatsApp (Evolution API)</CardTitle>
+          <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading}>
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Verificar estado"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {status ? (
+          <>
+            <div className="flex items-center gap-2 text-sm">
+              {connected
+                ? <Wifi className="h-4 w-4 text-green-500" />
+                : <WifiOff className="h-4 w-4 text-red-400" />}
+              <span className={connected ? "text-green-700 font-medium" : "text-red-600 font-medium"}>
+                {connected ? "Conectado" : "Desconectado"}
+              </span>
+              {status.connectionState && (
+                <span className="text-gray-400 font-mono text-xs">({status.connectionState})</span>
+              )}
+            </div>
+
+            {status.error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 font-mono break-all">
+                {status.error}
+              </div>
+            )}
+
+            <div className="text-xs text-gray-400 space-y-0.5">
+              <p><span className="font-medium text-gray-500">URL:</span> {status.baseUrl ?? "—"}</p>
+              <p><span className="font-medium text-gray-500">Instancia:</span> {status.instance ?? "—"}</p>
+            </div>
+
+            {!status.isConfigured && (
+              <p className="text-sm text-amber-600">
+                ⚠️ Evolution API no está configurada. Revisá las variables de entorno en Railway:
+                <code className="ml-1 text-xs">Evolution__BaseUrl</code>, <code className="text-xs">Evolution__ApiKey</code>, <code className="text-xs">Evolution__Instance</code>
+              </p>
+            )}
+
+            {status.isConfigured && !connected && (
+              <p className="text-sm text-amber-600">
+                ⚠️ La instancia está desconectada. Entrá al panel de Evolution API, abrí la instancia y escaneá el QR con WhatsApp.
+              </p>
+            )}
+
+            {status.isConfigured && connected && (
+              <div className="space-y-2 pt-1 border-t">
+                <p className="text-xs text-gray-500 font-medium">Enviar mensaje de prueba</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="+54 9 291 414-1049"
+                    className="text-sm h-8"
+                  />
+                  <Button size="sm" onClick={sendTest} disabled={testing || !testPhone.trim()}>
+                    {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-gray-400">Hacé clic en "Verificar estado" para ver el estado de la conexión.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -383,6 +491,8 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      <WhatsAppCard />
     </div>
   );
 }

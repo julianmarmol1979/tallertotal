@@ -1,6 +1,7 @@
 using MecaFlow.Api.Models;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace MecaFlow.Api.Services;
 
@@ -51,42 +52,109 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
         return SendAsync(phone, text);
     }
 
+    public async Task<WhatsAppStatus> GetStatusAsync()
+    {
+        if (!IsConfigured)
+            return new WhatsAppStatus(false, BaseUrl, Instance, null, "Evolution not configured (missing BaseUrl, ApiKey or Instance)");
+
+        try
+        {
+            using var http = BuildClient();
+            var res = await http.GetAsync($"{BaseUrl}/instance/connectionState/{Instance}");
+            var body = await res.Content.ReadAsStringAsync();
+
+            logger.LogInformation("WhatsApp status check → {Status}: {Body}", res.StatusCode, body);
+
+            if (!res.IsSuccessStatusCode)
+                return new WhatsAppStatus(true, BaseUrl, Instance, null, $"HTTP {(int)res.StatusCode}: {body}");
+
+            // Parse connection state from response
+            var json = JsonNode.Parse(body);
+            var state = json?["instance"]?["state"]?.GetValue<string>()
+                     ?? json?["state"]?.GetValue<string>()
+                     ?? body;
+
+            return new WhatsAppStatus(true, BaseUrl, Instance, state, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "WhatsApp status check failed");
+            return new WhatsAppStatus(true, BaseUrl, Instance, null, ex.Message);
+        }
+    }
+
+    public async Task<string?> SendTestAsync(string phone, string message)
+    {
+        if (!IsConfigured) return "Not configured";
+
+        var normalized = NormalizePhone(phone);
+        if (normalized is null) return $"Could not normalize phone: {phone}";
+
+        try
+        {
+            using var http = BuildClient();
+            var payload = JsonSerializer.Serialize(new { number = normalized, textMessage = new { text = message } }, JsonOpts);
+            var content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+            logger.LogInformation("WhatsApp test send → URL: {Url}, payload: {Payload}",
+                $"{BaseUrl}/message/sendText/{Instance}", payload);
+
+            var res = await http.PostAsync($"{BaseUrl}/message/sendText/{Instance}", content);
+            var body = await res.Content.ReadAsStringAsync();
+
+            logger.LogInformation("WhatsApp test response → {Status}: {Body}", res.StatusCode, body);
+
+            return res.IsSuccessStatusCode ? null : $"HTTP {(int)res.StatusCode}: {body}";
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
     private async Task SendAsync(string rawPhone, string text)
     {
         if (!IsConfigured)
         {
-            logger.LogDebug("WhatsApp not configured, skipping notification");
+            logger.LogDebug("WhatsApp not configured — skipping. BaseUrl={BaseUrl} Instance={Instance}", BaseUrl, Instance);
             return;
         }
 
         var phone = NormalizePhone(rawPhone);
         if (phone is null)
         {
-            logger.LogWarning("Could not normalize phone number: {Phone}", rawPhone);
+            logger.LogWarning("Could not normalize phone: {Phone}", rawPhone);
             return;
         }
 
         try
         {
-            using var http = new HttpClient();
-            http.DefaultRequestHeaders.Add("apikey", ApiKey);
-
+            using var http = BuildClient();
             var payload = JsonSerializer.Serialize(new { number = phone, textMessage = new { text } }, JsonOpts);
             var content = new StringContent(payload, Encoding.UTF8, "application/json");
+            var url = $"{BaseUrl}/message/sendText/{Instance}";
 
-            var response = await http.PostAsync($"{BaseUrl}/message/sendText/{Instance}", content);
+            logger.LogInformation("WhatsApp send → {Url} | phone={Phone} | payload={Payload}", url, phone, payload);
+
+            var response = await http.PostAsync(url, content);
+            var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                logger.LogWarning("WhatsApp send failed {Status}: {Body}", response.StatusCode, body);
-            }
+                logger.LogWarning("WhatsApp send FAILED {Status}: {Body}", response.StatusCode, body);
+            else
+                logger.LogInformation("WhatsApp send OK {Status}: {Body}", response.StatusCode, body);
         }
         catch (Exception ex)
         {
-            // Never let WhatsApp errors break the main flow
-            logger.LogError(ex, "WhatsApp notification failed for phone {Phone}", phone);
+            logger.LogError(ex, "WhatsApp send exception for phone {Phone}", phone);
         }
+    }
+
+    private HttpClient BuildClient()
+    {
+        var http = new HttpClient();
+        http.DefaultRequestHeaders.Add("apikey", ApiKey);
+        return http;
     }
 
     /// <summary>
@@ -97,9 +165,7 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
     {
         if (string.IsNullOrWhiteSpace(raw)) return null;
 
-        // Strip everything except digits
         var digits = new string(raw.Where(char.IsDigit).ToArray());
-
         if (digits.Length < 7) return null;
 
         // Already has country code 54

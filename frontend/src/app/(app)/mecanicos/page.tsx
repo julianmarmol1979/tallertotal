@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Wrench, ToggleLeft, ToggleRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Wrench, ToggleLeft, ToggleRight, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+import { exportMechanicsToExcel } from "@/lib/export-data";
 
 // ── Form state ─────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,18 @@ export default function MecanicosPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Listado</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Listado</CardTitle>
+            {mechanics.length > 0 && (
+              <Button
+                size="sm" variant="outline"
+                onClick={() => { exportMechanicsToExcel(mechanics, `mecanicos-${Date.now()}.xlsx`); toast.success("Exportado"); }}
+                className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
+              >
+                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (

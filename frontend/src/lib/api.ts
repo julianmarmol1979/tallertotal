@@ -99,6 +99,12 @@ export const adminApi = {
   createUser: (tenantId: string, dto: { username: string; password: string; role: string }) =>
     request<UserResponse>(`/admin/tenants/${tenantId}/users`, { method: "POST", body: JSON.stringify(dto) }),
   deleteUser: (userId: string) => request<void>(`/admin/users/${userId}`, { method: "DELETE" }),
+  getWhatsAppStatus: () => request<WhatsAppStatusResponse>("/admin/whatsapp/status"),
+  testWhatsApp: (phone: string, message?: string) =>
+    request<{ ok: boolean }>("/admin/whatsapp/test", {
+      method: "POST",
+      body: JSON.stringify({ phone, message }),
+    }),
 };
 
 // Admin types
@@ -115,4 +121,12 @@ export interface UserResponse {
   username: string;
   role: string;
   createdAt: string;
+}
+
+export interface WhatsAppStatusResponse {
+  isConfigured: boolean;
+  baseUrl?: string;
+  instance?: string;
+  connectionState?: string;
+  error?: string;
 }

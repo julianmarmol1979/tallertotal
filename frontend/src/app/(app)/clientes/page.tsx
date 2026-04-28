@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+import { exportCustomersToExcel } from "@/lib/export-data";
 
 const emptyForm = (): CreateCustomerDto => ({ name: "", phone: "", email: "" });
 
@@ -128,7 +129,18 @@ export default function ClientesPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Listado</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Listado</CardTitle>
+            {customers.length > 0 && (
+              <Button
+                size="sm" variant="outline"
+                onClick={() => { exportCustomersToExcel(customers, `clientes-${Date.now()}.xlsx`); toast.success("Exportado"); }}
+                className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
+              >
+                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input

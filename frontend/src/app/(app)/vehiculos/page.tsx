@@ -12,8 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Car, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Car, Search, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
+import { exportVehiclesToExcel } from "@/lib/export-data";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -325,7 +326,18 @@ export default function VehiculosPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Listado</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold">Listado</CardTitle>
+            {vehicles.length > 0 && (
+              <Button
+                size="sm" variant="outline"
+                onClick={() => { exportVehiclesToExcel(vehicles, `vehiculos-${Date.now()}.xlsx`); toast.success("Exportado"); }}
+                className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
+              >
+                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Input

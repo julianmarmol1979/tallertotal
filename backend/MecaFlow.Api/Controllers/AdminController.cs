@@ -1,6 +1,7 @@
 using MecaFlow.Api.Data;
 using MecaFlow.Api.DTOs;
 using MecaFlow.Api.Models;
+using MecaFlow.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,25 @@ namespace MecaFlow.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "SuperAdmin")]
-public class AdminController(AppDbContext db) : ControllerBase
+public class AdminController(AppDbContext db, IWhatsAppService whatsApp) : ControllerBase
 {
+    // GET /api/admin/whatsapp/status
+    [HttpGet("whatsapp/status")]
+    public async Task<IActionResult> WhatsAppStatus()
+    {
+        var status = await whatsApp.GetStatusAsync();
+        return Ok(status);
+    }
+
+    // POST /api/admin/whatsapp/test
+    [HttpPost("whatsapp/test")]
+    public async Task<IActionResult> WhatsAppTest([FromBody] WhatsAppTestRequest req)
+    {
+        var error = await whatsApp.SendTestAsync(req.Phone, req.Message ?? "🔧 MecaFlow - test de conexión WhatsApp");
+        if (error is null) return Ok(new { ok = true });
+        return BadRequest(new { error });
+    }
+
     // GET /api/admin/tenants
     [HttpGet("tenants")]
     public async Task<IActionResult> GetTenants()
