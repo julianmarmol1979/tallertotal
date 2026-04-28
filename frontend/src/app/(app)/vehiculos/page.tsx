@@ -235,7 +235,7 @@ export default function VehiculosPage() {
                   <Label required>Marca</Label>
                   <Select
                     value={form.brandSelect}
-                    onValueChange={(v) => setForm({ ...form, brandSelect: v, brandCustom: "" })}
+                    onValueChange={(v) => v && setForm({ ...form, brandSelect: v, brandCustom: "" })}
                   >
                     <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
@@ -267,7 +267,7 @@ export default function VehiculosPage() {
                   <Label>Color</Label>
                   <Select
                     value={form.colorSelect}
-                    onValueChange={(v) => setForm({ ...form, colorSelect: v, colorCustom: "" })}
+                    onValueChange={(v) => v && setForm({ ...form, colorSelect: v, colorCustom: "" })}
                   >
                     <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                     <SelectContent>
