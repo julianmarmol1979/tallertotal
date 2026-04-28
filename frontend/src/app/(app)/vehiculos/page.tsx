@@ -15,12 +15,65 @@ import {
 import { Plus, Pencil, Car, Search } from "lucide-react";
 import { toast } from "sonner";
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const BRANDS = [
+  "Acura", "Alfa Romeo", "BYD", "Chery", "Chevrolet", "Citroën", "DS",
+  "Fiat", "Ford", "Geely", "Honda", "Hyundai", "Jeep", "Kia", "Lifan",
+  "Maserati", "Mercedes-Benz", "MG", "Mini", "Mitsubishi", "Nissan",
+  "Peugeot", "Ram", "Renault", "Subaru", "Suzuki", "Toyota", "Volkswagen",
+  "Volvo", "ZNA", "Otro",
+];
+
+const COLORS = [
+  "Blanco", "Negro", "Gris", "Plateado", "Rojo", "Azul", "Azul Marino",
+  "Verde", "Amarillo", "Naranja", "Marrón", "Beige", "Celeste", "Bordó",
+  "Arena", "Otro",
+];
+
+const OTHER = "Otro";
 const CURRENT_YEAR = new Date().getFullYear();
 
-const emptyForm = (): Omit<CreateVehicleDto, "customerId"> & { customerId: string } => ({
-  customerId: "", licensePlate: "", brand: "", model: "",
-  year: CURRENT_YEAR, color: "", notes: "",
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns select value: the item itself if in list, "Otro" if custom, "" if empty */
+function selectValueFor(value: string, list: string[]) {
+  if (!value) return "";
+  return list.includes(value) ? value : OTHER;
+}
+
+// ── Form state ────────────────────────────────────────────────────────────────
+
+interface FormState {
+  customerId: string;
+  licensePlate: string;
+  brandSelect: string;
+  brandCustom: string;
+  model: string;
+  year: number;
+  colorSelect: string;
+  colorCustom: string;
+  notes: string;
+}
+
+const emptyForm = (): FormState => ({
+  customerId: "", licensePlate: "", brandSelect: "", brandCustom: "",
+  model: "", year: CURRENT_YEAR, colorSelect: "", colorCustom: "", notes: "",
 });
+
+function formToDto(form: FormState): Omit<CreateVehicleDto, "customerId"> & { customerId: string } {
+  return {
+    customerId: form.customerId,
+    licensePlate: form.licensePlate,
+    brand: form.brandSelect === OTHER ? form.brandCustom : form.brandSelect,
+    model: form.model,
+    year: form.year,
+    color: (form.colorSelect === OTHER ? form.colorCustom : form.colorSelect) || undefined,
+    notes: form.notes || undefined,
+  };
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function VehiculosPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -29,7 +82,7 @@ export default function VehiculosPage() {
   const [plateSearch, setPlateSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Vehicle | null>(null);
-  const [form, setForm] = useState(emptyForm());
+  const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
 
@@ -49,26 +102,37 @@ export default function VehiculosPage() {
     customersApi.getAll(customerSearch || undefined).then(setCustomers).catch(() => {});
   }, [customerSearch]);
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm()); setCustomerSearch(""); setOpen(true); };
+  const openCreate = () => {
+    setEditing(null);
+    setForm(emptyForm());
+    setCustomerSearch("");
+    setOpen(true);
+  };
+
   const openEdit = (v: Vehicle) => {
     setEditing(v);
+    const brandSel = selectValueFor(v.brand, BRANDS);
+    const colorSel = selectValueFor(v.color ?? "", COLORS);
     setForm({
-      customerId: v.customerId, licensePlate: v.licensePlate, brand: v.brand,
-      model: v.model, year: v.year, color: v.color ?? "", notes: v.notes ?? "",
+      customerId: v.customerId,
+      licensePlate: v.licensePlate,
+      brandSelect: brandSel,
+      brandCustom: brandSel === OTHER ? v.brand : "",
+      model: v.model,
+      year: v.year,
+      colorSelect: colorSel,
+      colorCustom: colorSel === OTHER ? (v.color ?? "") : "",
+      notes: v.notes ?? "",
     });
     setCustomerSearch("");
     setOpen(true);
   };
 
   const handleSave = async () => {
-    if (!form.customerId || !form.licensePlate || !form.brand || !form.model) return;
+    const dto = formToDto(form);
+    if (!dto.customerId || !dto.licensePlate || !dto.brand || !dto.model) return;
     setSaving(true);
     try {
-      const dto: CreateVehicleDto = {
-        ...form,
-        color: form.color || undefined,
-        notes: form.notes || undefined,
-      };
       if (editing) {
         await vehiclesApi.create(dto);
         toast.success("Vehículo actualizado");
@@ -89,6 +153,9 @@ export default function VehiculosPage() {
     !customerSearch || c.name.toLowerCase().includes(customerSearch.toLowerCase()) || c.phone.includes(customerSearch)
   );
 
+  const dto = formToDto(form);
+  const canSave = !!dto.customerId && !!dto.licensePlate && !!dto.brand && !!dto.model;
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
@@ -97,18 +164,17 @@ export default function VehiculosPage() {
           <p className="text-sm text-gray-500 mt-1">{vehicles.length} registrados</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger
-            render={
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4 mr-1" /> Nuevo Vehículo
-              </Button>
-            }
-          />
+          <DialogTrigger render={
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-1" /> Nuevo Vehículo
+            </Button>
+          } />
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{editing ? "Editar vehículo" : "Nuevo vehículo"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-3 py-2">
+
               {/* Customer selector */}
               <div className="space-y-1">
                 <Label required>Cliente</Label>
@@ -143,6 +209,7 @@ export default function VehiculosPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                {/* Placa */}
                 <div className="space-y-1">
                   <Label required>Placa</Label>
                   <Input
@@ -152,6 +219,8 @@ export default function VehiculosPage() {
                     className="font-mono uppercase"
                   />
                 </div>
+
+                {/* Año */}
                 <div className="space-y-1">
                   <Label required>Año</Label>
                   <Input
@@ -160,30 +229,76 @@ export default function VehiculosPage() {
                     onChange={(e) => setForm({ ...form, year: Number(e.target.value) })}
                   />
                 </div>
+
+                {/* Marca */}
                 <div className="space-y-1">
                   <Label required>Marca</Label>
-                  <Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Toyota" />
+                  <Select
+                    value={form.brandSelect}
+                    onValueChange={(v) => setForm({ ...form, brandSelect: v, brandCustom: "" })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                    <SelectContent>
+                      {BRANDS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {form.brandSelect === OTHER && (
+                    <Input
+                      value={form.brandCustom}
+                      onChange={(e) => setForm({ ...form, brandCustom: e.target.value })}
+                      placeholder="Escribí la marca..."
+                      autoFocus
+                    />
+                  )}
                 </div>
+
+                {/* Modelo */}
                 <div className="space-y-1">
                   <Label required>Modelo</Label>
-                  <Input value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} placeholder="Corolla" />
+                  <Input
+                    value={form.model}
+                    onChange={(e) => setForm({ ...form, model: e.target.value })}
+                    placeholder="Corolla"
+                  />
                 </div>
+
+                {/* Color */}
                 <div className="space-y-1">
                   <Label>Color</Label>
-                  <Input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} placeholder="Blanco" />
+                  <Select
+                    value={form.colorSelect}
+                    onValueChange={(v) => setForm({ ...form, colorSelect: v, colorCustom: "" })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                    <SelectContent>
+                      {COLORS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {form.colorSelect === OTHER && (
+                    <Input
+                      value={form.colorCustom}
+                      onChange={(e) => setForm({ ...form, colorCustom: e.target.value })}
+                      placeholder="Escribí el color..."
+                      autoFocus
+                    />
+                  )}
                 </div>
               </div>
+
+              {/* Notas */}
               <div className="space-y-1">
                 <Label>Notas</Label>
-                <Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="GNC, automático, diésel..." />
+                <Input
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  placeholder="GNC, automático, diésel..."
+                />
               </div>
             </div>
+
             <DialogFooter>
               <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
-              <Button
-                onClick={handleSave}
-                disabled={saving || !form.customerId || !form.licensePlate || !form.brand || !form.model}
-              >
+              <Button onClick={handleSave} disabled={saving || !canSave}>
                 {saving ? "Guardando..." : "Guardar"}
               </Button>
             </DialogFooter>
