@@ -42,6 +42,8 @@ export interface ServiceOrder {
   diagnosisNotes?: string;
   mileageIn?: number;
   assignedMechanic?: string;
+  internalNotes?: string;
+  estimatedDeliveryAt?: string;
   totalEstimate: number;
   totalFinal: number;
   createdAt: string;
@@ -77,6 +79,8 @@ export interface CreateServiceOrderDto {
   diagnosisNotes?: string;
   mileageIn?: number;
   assignedMechanic?: string;
+  internalNotes?: string;
+  estimatedDeliveryAt?: string;
   items: CreateServiceItemDto[];
 }
 

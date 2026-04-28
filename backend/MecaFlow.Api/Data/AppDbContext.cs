@@ -67,6 +67,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.TotalEstimate).HasPrecision(10, 2);
             e.Property(x => x.TotalFinal).HasPrecision(10, 2);
             e.Property(x => x.AssignedMechanic).HasMaxLength(100);
+            e.Property(x => x.InternalNotes).HasMaxLength(1000);
             e.HasOne(x => x.Vehicle)
                 .WithMany(x => x.ServiceOrders)
                 .HasForeignKey(x => x.VehicleId)

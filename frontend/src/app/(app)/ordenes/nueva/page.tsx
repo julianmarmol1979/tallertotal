@@ -27,6 +27,8 @@ export default function NuevaOrdenPage() {
   const [diagnosisNotes, setDiagnosisNotes] = useState("");
   const [mileageIn, setMileageIn] = useState("");
   const [assignedMechanic, setAssignedMechanic] = useState("");
+  const [internalNotes, setInternalNotes] = useState("");
+  const [estimatedDeliveryAt, setEstimatedDeliveryAt] = useState("");
   const [items, setItems] = useState<CreateServiceItemDto[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [mechanics, setMechanics] = useState<Mechanic[]>([]);
@@ -55,6 +57,8 @@ export default function NuevaOrdenPage() {
         diagnosisNotes: diagnosisNotes || undefined,
         mileageIn: mileageIn ? Number(mileageIn) : undefined,
         assignedMechanic: assignedMechanic || undefined,
+        internalNotes: internalNotes || undefined,
+        estimatedDeliveryAt: estimatedDeliveryAt || undefined,
         items,
       });
       toast.success("Orden creada correctamente");
@@ -167,6 +171,14 @@ export default function NuevaOrdenPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
+                <Label>Fecha estimada de entrega</Label>
+                <Input
+                  type="date"
+                  value={estimatedDeliveryAt}
+                  onChange={(e) => setEstimatedDeliveryAt(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
                 <Label>Mecánico asignado</Label>
                 {mechanics.length > 0 ? (
                   <select
@@ -206,6 +218,16 @@ export default function NuevaOrdenPage() {
                 onChange={(e) => setDiagnosisNotes(e.target.value)}
                 placeholder="Describe el problema o trabajo a realizar..."
                 rows={3}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>Notas internas</Label>
+              <Textarea
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
+                placeholder="Notas visibles solo para el taller (no se envían al cliente)..."
+                rows={2}
               />
             </div>
 

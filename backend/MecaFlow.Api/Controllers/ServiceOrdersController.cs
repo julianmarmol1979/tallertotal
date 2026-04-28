@@ -20,6 +20,7 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         $"{o.Vehicle.Brand} {o.Vehicle.Model} {o.Vehicle.Year}",
         o.Vehicle.Customer.Name, o.Vehicle.Customer.Phone,
         o.Status, o.DiagnosisNotes, o.MileageIn, o.AssignedMechanic,
+        o.InternalNotes, o.EstimatedDeliveryAt,
         o.TotalEstimate, o.TotalFinal, o.CreatedAt, o.CompletedAt,
         o.Items.Select(i => new ServiceItemDto(i.Id, i.Description, i.Type, i.Quantity, i.UnitPrice, i.Total)).ToList()
     );
@@ -34,12 +35,16 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
     public async Task<IEnumerable<ServiceOrderDto>> GetAll(
         [FromQuery] ServiceOrderStatus? status,
         [FromQuery] string? plate,
-        [FromQuery] string? customer)
+        [FromQuery] string? customer,
+        [FromQuery] string? mechanic,
+        [FromQuery] Guid? vehicleId)
     {
         var query = BaseQuery().AsQueryable();
         if (status.HasValue) query = query.Where(o => o.Status == status);
         if (!string.IsNullOrWhiteSpace(plate)) query = query.Where(o => o.Vehicle.LicensePlate.Contains(plate));
         if (!string.IsNullOrWhiteSpace(customer)) query = query.Where(o => o.Vehicle.Customer.Name.Contains(customer));
+        if (!string.IsNullOrWhiteSpace(mechanic)) query = query.Where(o => o.AssignedMechanic != null && o.AssignedMechanic.Contains(mechanic));
+        if (vehicleId.HasValue) query = query.Where(o => o.VehicleId == vehicleId);
         return await query.OrderByDescending(o => o.CreatedAt).Select(o => MapToDto(o)).ToListAsync();
     }
 
@@ -63,6 +68,8 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
             DiagnosisNotes = dto.DiagnosisNotes,
             MileageIn = dto.MileageIn,
             AssignedMechanic = dto.AssignedMechanic,
+            InternalNotes = dto.InternalNotes,
+            EstimatedDeliveryAt = dto.EstimatedDeliveryAt,
             Items = dto.Items.Select(i => new ServiceItem
             {
                 Description = i.Description, Type = i.Type, Quantity = i.Quantity, UnitPrice = i.UnitPrice
@@ -88,6 +95,8 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         order.DiagnosisNotes = dto.DiagnosisNotes;
         order.MileageIn = dto.MileageIn;
         order.AssignedMechanic = dto.AssignedMechanic;
+        order.InternalNotes = dto.InternalNotes;
+        order.EstimatedDeliveryAt = dto.EstimatedDeliveryAt;
         order.TotalEstimate = dto.TotalEstimate;
         order.TotalFinal = dto.TotalFinal;
 

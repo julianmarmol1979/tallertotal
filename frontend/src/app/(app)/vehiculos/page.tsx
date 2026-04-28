@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { vehiclesApi, customersApi } from "@/lib/api";
-import type { Vehicle, Customer, CreateVehicleDto } from "@/types";
+import { vehiclesApi, customersApi, serviceOrdersApi } from "@/lib/api";
+import type { Vehicle, Customer, CreateVehicleDto, ServiceOrder } from "@/types";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Car, Search, FileSpreadsheet } from "lucide-react";
+import { Plus, Pencil, Trash2, Car, Search, FileSpreadsheet, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { exportVehiclesToExcel } from "@/lib/export-data";
 
@@ -89,6 +90,9 @@ export default function VehiculosPage() {
   const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [historyTarget, setHistoryTarget] = useState<Vehicle | null>(null);
+  const [historyOrders, setHistoryOrders] = useState<ServiceOrder[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -193,6 +197,20 @@ export default function VehiculosPage() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  };
+
+  const openHistory = async (v: Vehicle) => {
+    setHistoryTarget(v);
+    setHistoryOrders([]);
+    setHistoryLoading(true);
+    try {
+      const orders = await serviceOrdersApi.getAll({ vehicleId: v.id });
+      setHistoryOrders(orders);
+    } catch {
+      toast.error("Error al cargar historial");
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const handleExport = () => {
@@ -426,6 +444,14 @@ export default function VehiculosPage() {
                       <TableCell className="text-xs text-gray-500 max-w-[140px] truncate">{v.notes ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost" size="icon-sm"
+                            onClick={() => openHistory(v)}
+                            title="Ver historial de órdenes"
+                            className="text-gray-400 hover:text-blue-600"
+                          >
+                            <ClipboardList className="h-3.5 w-3.5" />
+                          </Button>
                           <Button variant="ghost" size="icon-sm" onClick={() => openEdit(v)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -446,6 +472,56 @@ export default function VehiculosPage() {
           )}
         </CardContent>
       </Card>
+      {/* Order history */}
+      <Dialog open={!!historyTarget} onOpenChange={(o) => !o && setHistoryTarget(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Historial — {historyTarget?.licensePlate} {historyTarget?.brand} {historyTarget?.model}
+            </DialogTitle>
+          </DialogHeader>
+          {historyLoading ? (
+            <div className="py-8 text-center text-sm text-gray-400">Cargando...</div>
+          ) : historyOrders.length === 0 ? (
+            <div className="py-8 text-center text-sm text-gray-400">Este vehículo no tiene órdenes registradas</div>
+          ) : (
+            <div className="overflow-x-auto rounded-md border max-h-96 overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Mecánico</TableHead>
+                    <TableHead>Diagnóstico</TableHead>
+                    <TableHead className="text-right">Total est.</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyOrders.map((o) => (
+                    <TableRow key={o.id}>
+                      <TableCell className="text-sm text-gray-500 whitespace-nowrap">
+                        {new Date(o.createdAt).toLocaleDateString("es-AR")}
+                      </TableCell>
+                      <TableCell><StatusBadge status={o.status} /></TableCell>
+                      <TableCell className="text-sm text-gray-600">{o.assignedMechanic ?? "—"}</TableCell>
+                      <TableCell className="text-sm text-gray-600 max-w-[200px] truncate" title={o.diagnosisNotes}>
+                        {o.diagnosisNotes || "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-medium">
+                        ${o.totalEstimate.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <div className="flex justify-end pt-2">
+            <DialogClose render={<Button variant="outline" />}>Cerrar</DialogClose>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-sm">

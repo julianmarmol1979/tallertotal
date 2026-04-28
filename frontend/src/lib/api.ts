@@ -70,11 +70,13 @@ export const mechanicsApi = {
 
 // Service Orders
 export const serviceOrdersApi = {
-  getAll: (params?: { status?: ServiceOrderStatus; plate?: string; customer?: string }) => {
+  getAll: (params?: { status?: ServiceOrderStatus; plate?: string; customer?: string; mechanic?: string; vehicleId?: string }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.plate) qs.set("plate", params.plate);
     if (params?.customer) qs.set("customer", params.customer);
+    if (params?.mechanic) qs.set("mechanic", params.mechanic);
+    if (params?.vehicleId) qs.set("vehicleId", params.vehicleId);
     const q = qs.toString();
     return request<ServiceOrder[]>(`/serviceorders${q ? `?${q}` : ""}`);
   },
