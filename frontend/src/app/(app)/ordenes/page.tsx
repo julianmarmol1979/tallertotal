@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { serviceOrdersApi } from "@/lib/api";
+import { exportOrdersToExcel } from "@/lib/export-orders";
 import type { ServiceOrder, ServiceOrderStatus } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, FileSpreadsheet, Download } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUS_TABS: { value: ServiceOrderStatus | "all"; label: string }[] = [
@@ -26,9 +27,11 @@ export default function OrdenesPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ServiceOrderStatus | "all">("all");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set());
     try {
       const data = await serviceOrdersApi.getAll(
         activeTab !== "all" ? { status: activeTab } : undefined
@@ -63,6 +66,46 @@ export default function OrdenesPage() {
     );
   });
 
+  // ── Selection helpers ──────────────────────────────────────────────────────
+  const allFilteredIds = filtered.map((o) => o.id);
+  const allSelected = allFilteredIds.length > 0 && allFilteredIds.every((id) => selected.has(id));
+  const someSelected = allFilteredIds.some((id) => selected.has(id));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        allFilteredIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelected((prev) => new Set([...prev, ...allFilteredIds]));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // ── Export helpers ─────────────────────────────────────────────────────────
+  const exportSelected = () => {
+    const toExport = filtered.filter((o) => selected.has(o.id));
+    if (!toExport.length) return;
+    exportOrdersToExcel(toExport, `ordenes-seleccionadas-${Date.now()}.xlsx`);
+    toast.success(`${toExport.length} orden${toExport.length !== 1 ? "es" : ""} exportada${toExport.length !== 1 ? "s" : ""}`);
+  };
+
+  const exportOne = (order: ServiceOrder) => {
+    exportOrdersToExcel([order], `orden-${order.licensePlate}-${Date.now()}.xlsx`);
+    toast.success("Orden exportada");
+  };
+
+  const selectedCount = allFilteredIds.filter((id) => selected.has(id)).length;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
@@ -77,7 +120,15 @@ export default function OrdenesPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Listado</CardTitle>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base font-semibold">Listado</CardTitle>
+            {someSelected && (
+              <Button size="sm" variant="outline" onClick={exportSelected} className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50">
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar {selectedCount} seleccionada{selectedCount !== 1 ? "s" : ""}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
@@ -113,6 +164,16 @@ export default function OrdenesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                        onChange={toggleAll}
+                        className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                        aria-label="Seleccionar todas"
+                      />
+                    </TableHead>
                     <TableHead>Placa</TableHead>
                     <TableHead>Vehículo</TableHead>
                     <TableHead>Cliente</TableHead>
@@ -121,11 +182,24 @@ export default function OrdenesPage() {
                     <TableHead className="text-right">Total estimado</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Cambiar estado</TableHead>
+                    <TableHead className="w-10" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-gray-50">
+                    <TableRow
+                      key={order.id}
+                      className={`hover:bg-gray-50 ${selected.has(order.id) ? "bg-blue-50/60" : ""}`}
+                    >
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(order.id)}
+                          onChange={() => toggleOne(order.id)}
+                          className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          aria-label={`Seleccionar orden ${order.licensePlate}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono font-semibold text-sm">{order.licensePlate}</TableCell>
                       <TableCell className="text-sm">{order.vehicleDescription}</TableCell>
                       <TableCell>
@@ -155,6 +229,17 @@ export default function OrdenesPage() {
                             <SelectItem value="Cancelled">Cancelada</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => exportOne(order)}
+                          title="Exportar esta orden a Excel"
+                          className="text-gray-400 hover:text-green-600"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
