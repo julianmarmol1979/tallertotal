@@ -16,13 +16,20 @@ public class AdminController(AppDbContext db) : ControllerBase
     [HttpGet("tenants")]
     public async Task<IActionResult> GetTenants()
     {
-        var tenants = await db.Tenants
-            .Select(t => new TenantResponse(
-                t.Id, t.Name, t.IsActive, t.CreatedAt,
-                t.Users.Count))
-            .OrderBy(t => t.Name)
-            .ToListAsync();
-        return Ok(tenants);
+        try
+        {
+            var tenants = await db.Tenants
+                .Select(t => new TenantResponse(
+                    t.Id, t.Name, t.IsActive, t.CreatedAt,
+                    t.Users.Count))
+                .OrderBy(t => t.Name)
+                .ToListAsync();
+            return Ok(tenants);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = ex.Message, type = ex.GetType().Name, inner = ex.InnerException?.Message });
+        }
     }
 
     // POST /api/admin/tenants
