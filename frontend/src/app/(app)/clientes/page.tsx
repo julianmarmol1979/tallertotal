@@ -27,9 +27,11 @@ export default function ClientesPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set());
     try {
       setCustomers(await customersApi.getAll(search || undefined));
     } catch {
@@ -84,6 +86,36 @@ export default function ClientesPage() {
     }
   };
 
+  // ── Selection ──────────────────────────────────────────────────────────────
+  const allIds = customers.map((c) => c.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = allIds.some((id) => selected.has(id));
+  const selectedCount = allIds.filter((id) => selected.has(id)).length;
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(allIds));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+  const handleExport = () => {
+    const toExport = someSelected ? customers.filter((c) => selected.has(c.id)) : customers;
+    if (!toExport.length) return;
+    exportCustomersToExcel(toExport, `clientes-${Date.now()}.xlsx`);
+    toast.success(`${toExport.length} cliente${toExport.length !== 1 ? "s" : ""} exportado${toExport.length !== 1 ? "s" : ""}`);
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
@@ -92,13 +124,11 @@ export default function ClientesPage() {
           <p className="text-sm text-gray-500 mt-1">{customers.length} registrados</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger
-            render={
-              <Button onClick={openCreate}>
-                <Plus className="h-4 w-4 mr-1" /> Nuevo Cliente
-              </Button>
-            }
-          />
+          <DialogTrigger render={
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-1" /> Nuevo Cliente
+            </Button>
+          } />
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>{editing ? "Editar cliente" : "Nuevo cliente"}</DialogTitle>
@@ -129,15 +159,12 @@ export default function ClientesPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-base font-semibold">Listado</CardTitle>
             {customers.length > 0 && (
-              <Button
-                size="sm" variant="outline"
-                onClick={() => { exportCustomersToExcel(customers, `clientes-${Date.now()}.xlsx`); toast.success("Exportado"); }}
-                className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
-              >
-                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50">
+                <FileSpreadsheet className="h-4 w-4" />
+                {someSelected ? `Exportar ${selectedCount} seleccionado${selectedCount !== 1 ? "s" : ""}` : `Exportar todos (${customers.length})`}
               </Button>
             )}
           </div>
@@ -162,6 +189,16 @@ export default function ClientesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                        onChange={toggleAll}
+                        className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                        aria-label="Seleccionar todos"
+                      />
+                    </TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Teléfono</TableHead>
                     <TableHead>Email</TableHead>
@@ -171,7 +208,16 @@ export default function ClientesPage() {
                 </TableHeader>
                 <TableBody>
                   {customers.map((c) => (
-                    <TableRow key={c.id} className="hover:bg-gray-50">
+                    <TableRow key={c.id} className={`hover:bg-gray-50 ${selected.has(c.id) ? "bg-blue-50/60" : ""}`}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(c.id)}
+                          onChange={() => toggleOne(c.id)}
+                          className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          aria-label={`Seleccionar ${c.name}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       <TableCell className="text-sm text-gray-600">{c.phone}</TableCell>
                       <TableCell className="text-sm text-gray-500">{c.email ?? "—"}</TableCell>
@@ -186,8 +232,7 @@ export default function ClientesPage() {
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="icon-sm"
+                            variant="ghost" size="icon-sm"
                             onClick={() => setDeleteTarget(c)}
                             className="text-red-400 hover:text-red-600 hover:bg-red-50"
                           >
@@ -216,11 +261,7 @@ export default function ClientesPage() {
           </p>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Eliminando..." : "Sí, eliminar"}
             </Button>
           </DialogFooter>

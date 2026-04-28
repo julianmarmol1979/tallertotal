@@ -98,19 +98,20 @@ export default function OrdenesPage() {
   };
 
   // ── Export helpers ─────────────────────────────────────────────────────────
-  const exportSelected = () => {
-    const toExport = filtered.filter((o) => selected.has(o.id));
+  const selectedCount = allFilteredIds.filter((id) => selected.has(id)).length;
+
+  const handleExport = () => {
+    const toExport = someSelected ? filtered.filter((o) => selected.has(o.id)) : filtered;
     if (!toExport.length) return;
-    exportOrdersToExcel(toExport, `ordenes-seleccionadas-${Date.now()}.xlsx`);
-    toast.success(`${toExport.length} orden${toExport.length !== 1 ? "es" : ""} exportada${toExport.length !== 1 ? "s" : ""}`);
+    exportOrdersToExcel(toExport, `ordenes-${Date.now()}.xlsx`);
+    const n = toExport.length;
+    toast.success(`${n} orden${n !== 1 ? "es" : ""} exportada${n !== 1 ? "s" : ""}`);
   };
 
   const exportOne = (order: ServiceOrder) => {
     exportOrdersToExcel([order], `orden-${order.licensePlate}-${Date.now()}.xlsx`);
     toast.success("Orden exportada");
   };
-
-  const selectedCount = allFilteredIds.filter((id) => selected.has(id)).length;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -128,10 +129,10 @@ export default function OrdenesPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-base font-semibold">Listado</CardTitle>
-            {someSelected && (
-              <Button size="sm" variant="outline" onClick={exportSelected} className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50">
+            {filtered.length > 0 && (
+              <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50">
                 <FileSpreadsheet className="h-4 w-4" />
-                Exportar {selectedCount} seleccionada{selectedCount !== 1 ? "s" : ""}
+                {someSelected ? `Exportar ${selectedCount} seleccionada${selectedCount !== 1 ? "s" : ""}` : `Exportar todas (${filtered.length})`}
               </Button>
             )}
           </div>

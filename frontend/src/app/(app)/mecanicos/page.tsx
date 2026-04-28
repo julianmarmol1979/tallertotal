@@ -36,9 +36,11 @@ export default function MecanicosPage() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Mechanic | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set());
     try {
       setMechanics(await mechanicsApi.getAll());
     } catch {
@@ -112,6 +114,32 @@ export default function MecanicosPage() {
     }
   };
 
+  // ── Selection ──────────────────────────────────────────────────────────────
+  const allIds = mechanics.map((m) => m.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = allIds.some((id) => selected.has(id));
+  const selectedCount = allIds.filter((id) => selected.has(id)).length;
+
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(allIds));
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleExport = () => {
+    const toExport = someSelected ? mechanics.filter((m) => selected.has(m.id)) : mechanics;
+    if (!toExport.length) return;
+    exportMechanicsToExcel(toExport, `mecanicos-${Date.now()}.xlsx`);
+    toast.success(`${toExport.length} mecánico${toExport.length !== 1 ? "s" : ""} exportado${toExport.length !== 1 ? "s" : ""}`);
+  };
+
   const activeCount = mechanics.filter((m) => m.isActive).length;
 
   return (
@@ -172,15 +200,12 @@ export default function MecanicosPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-base font-semibold">Listado</CardTitle>
             {mechanics.length > 0 && (
-              <Button
-                size="sm" variant="outline"
-                onClick={() => { exportMechanicsToExcel(mechanics, `mecanicos-${Date.now()}.xlsx`); toast.success("Exportado"); }}
-                className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
-              >
-                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50">
+                <FileSpreadsheet className="h-4 w-4" />
+                {someSelected ? `Exportar ${selectedCount} seleccionado${selectedCount !== 1 ? "s" : ""}` : `Exportar todos (${mechanics.length})`}
               </Button>
             )}
           </div>
@@ -198,6 +223,16 @@ export default function MecanicosPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                        onChange={toggleAll}
+                        className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                        aria-label="Seleccionar todos"
+                      />
+                    </TableHead>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Teléfono</TableHead>
                     <TableHead>Especialidad</TableHead>
@@ -207,7 +242,16 @@ export default function MecanicosPage() {
                 </TableHeader>
                 <TableBody>
                   {mechanics.map((m) => (
-                    <TableRow key={m.id} className={`hover:bg-gray-50 ${!m.isActive ? "opacity-50" : ""}`}>
+                    <TableRow key={m.id} className={`hover:bg-gray-50 ${selected.has(m.id) ? "bg-blue-50/60" : ""} ${!m.isActive ? "opacity-50" : ""}`}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(m.id)}
+                          onChange={() => toggleOne(m.id)}
+                          className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          aria-label={`Seleccionar ${m.name}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium text-sm">{m.name}</TableCell>
                       <TableCell className="text-sm text-gray-600">{m.phone ?? "—"}</TableCell>
                       <TableCell className="text-sm text-gray-600">{m.specialty ?? "—"}</TableCell>

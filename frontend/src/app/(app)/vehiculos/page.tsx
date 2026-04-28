@@ -88,9 +88,11 @@ export default function VehiculosPage() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSelected(new Set());
     try {
       setVehicles(await vehiclesApi.getAll(plateSearch ? { plate: plateSearch } : undefined));
     } catch {
@@ -173,6 +175,32 @@ export default function VehiculosPage() {
 
   const dto = formToDto(form);
   const canSave = !!dto.customerId && !!dto.licensePlate && !!dto.brand && !!dto.model;
+
+  // ── Selection ──────────────────────────────────────────────────────────────
+  const allIds = vehicles.map((v) => v.id);
+  const allSelected = allIds.length > 0 && allIds.every((id) => selected.has(id));
+  const someSelected = allIds.some((id) => selected.has(id));
+  const selectedCount = allIds.filter((id) => selected.has(id)).length;
+
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(allIds));
+  };
+
+  const toggleOne = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleExport = () => {
+    const toExport = someSelected ? vehicles.filter((v) => selected.has(v.id)) : vehicles;
+    if (!toExport.length) return;
+    exportVehiclesToExcel(toExport, `vehiculos-${Date.now()}.xlsx`);
+    toast.success(`${toExport.length} vehículo${toExport.length !== 1 ? "s" : ""} exportado${toExport.length !== 1 ? "s" : ""}`);
+  };
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -326,15 +354,12 @@ export default function VehiculosPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-base font-semibold">Listado</CardTitle>
             {vehicles.length > 0 && (
-              <Button
-                size="sm" variant="outline"
-                onClick={() => { exportVehiclesToExcel(vehicles, `vehiculos-${Date.now()}.xlsx`); toast.success("Exportado"); }}
-                className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
-              >
-                <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+              <Button size="sm" variant="outline" onClick={handleExport} className="gap-1.5 text-green-700 border-green-300 hover:bg-green-50">
+                <FileSpreadsheet className="h-4 w-4" />
+                {someSelected ? `Exportar ${selectedCount} seleccionado${selectedCount !== 1 ? "s" : ""}` : `Exportar todos (${vehicles.length})`}
               </Button>
             )}
           </div>
@@ -359,6 +384,16 @@ export default function VehiculosPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                        onChange={toggleAll}
+                        className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                        aria-label="Seleccionar todos"
+                      />
+                    </TableHead>
                     <TableHead>Placa</TableHead>
                     <TableHead>Vehículo</TableHead>
                     <TableHead>Color</TableHead>
@@ -369,7 +404,16 @@ export default function VehiculosPage() {
                 </TableHeader>
                 <TableBody>
                   {vehicles.map((v) => (
-                    <TableRow key={v.id} className="hover:bg-gray-50">
+                    <TableRow key={v.id} className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-blue-50/60" : ""}`}>
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(v.id)}
+                          onChange={() => toggleOne(v.id)}
+                          className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          aria-label={`Seleccionar ${v.licensePlate}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-mono font-bold text-sm">{v.licensePlate}</TableCell>
                       <TableCell>
                         <div className="text-sm font-medium">{v.brand} {v.model}</div>
