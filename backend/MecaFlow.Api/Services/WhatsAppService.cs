@@ -37,6 +37,10 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
         var mechanic = string.IsNullOrWhiteSpace(order.AssignedMechanic) ? "" : $" Mecánico: {order.AssignedMechanic}.";
         var total = order.TotalEstimate.ToString("N0");
 
+        logger.LogInformation(
+            "WhatsApp status-change notification — order={OrderId} plate={Plate} status={Status} phone='{Phone}'",
+            order.Id, plate, newStatus, phone);
+
         var text = newStatus switch
         {
             ServiceOrderStatus.InProgress =>
@@ -48,7 +52,12 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
             _ => null
         };
 
-        if (text is null) return Task.CompletedTask;
+        if (text is null)
+        {
+            logger.LogDebug("WhatsApp status-change: no message template for status {Status}, skipping", newStatus);
+            return Task.CompletedTask;
+        }
+
         return SendAsync(phone, text);
     }
 
@@ -157,10 +166,16 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(rawPhone))
+        {
+            logger.LogWarning("WhatsApp send skipped — customer has no phone number on record");
+            return;
+        }
+
         var phone = NormalizePhone(rawPhone);
         if (phone is null)
         {
-            logger.LogWarning("Could not normalize phone: {Phone}", rawPhone);
+            logger.LogWarning("WhatsApp send skipped — could not normalize phone '{Phone}' (too short or invalid format)", rawPhone);
             return;
         }
 

@@ -74,7 +74,7 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         await db.SaveChangesAsync();
 
         var created = await BaseQuery().FirstAsync(o => o.Id == order.Id);
-        _ = whatsApp.SendOrderCreatedAsync(created);
+        await whatsApp.SendOrderCreatedAsync(created);
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToDto(created));
     }
 
@@ -116,7 +116,7 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
             order.CompletedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
-        _ = whatsApp.SendStatusChangedAsync(order, status);
+        await whatsApp.SendStatusChangedAsync(order, status);
         return MapToDto(order);
     }
 }
