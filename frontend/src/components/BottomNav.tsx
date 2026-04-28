@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ClipboardList, Users, Car } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Users, Car, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/ordenes", label: "Órdenes", icon: ClipboardList },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/vehiculos", label: "Vehículos", icon: Car },
+  { href: "/mecanicos", label: "Mecánicos", icon: Wrench },
 ];
 
 export function BottomNav() {

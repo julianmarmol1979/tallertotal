@@ -24,13 +24,19 @@ export async function POST(request: Request) {
   const data = await res.json();
   const response = NextResponse.json({ ok: true, role: data.role, tenantName: data.tenantName });
 
-  response.cookies.set("mecaflow_token", data.token, {
-    httpOnly: true,
+  const cookieOpts = {
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     maxAge: 60 * 60 * 24 * 7,
     path: "/",
-  });
+  };
+
+  response.cookies.set("mecaflow_token", data.token, { ...cookieOpts, httpOnly: true });
+
+  // Readable cookie so the client-side sidebar can show the tenant name
+  if (data.tenantName) {
+    response.cookies.set("mecaflow_tenant", data.tenantName, { ...cookieOpts, httpOnly: false });
+  }
 
   return response;
 }

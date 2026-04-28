@@ -6,6 +6,8 @@ import type {
   CreateCustomerDto,
   CreateVehicleDto,
   CreateServiceOrderDto,
+  Mechanic,
+  CreateMechanicDto,
 } from "@/types";
 
 // All calls go through the Next.js proxy which adds the JWT from httpOnly cookie
@@ -48,7 +50,22 @@ export const vehiclesApi = {
   getById: (id: string) => request<Vehicle>(`/vehicles/${id}`),
   create: (dto: CreateVehicleDto) =>
     request<Vehicle>("/vehicles", { method: "POST", body: JSON.stringify(dto) }),
+  update: (id: string, dto: CreateVehicleDto) =>
+    request<Vehicle>(`/vehicles/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
   delete: (id: string) => request<void>(`/vehicles/${id}`, { method: "DELETE" }),
+};
+
+// Mechanics
+export const mechanicsApi = {
+  getAll: (activeOnly?: boolean) =>
+    request<Mechanic[]>(`/mechanics${activeOnly ? "?activeOnly=true" : ""}`),
+  create: (dto: CreateMechanicDto) =>
+    request<Mechanic>("/mechanics", { method: "POST", body: JSON.stringify(dto) }),
+  update: (id: string, dto: CreateMechanicDto) =>
+    request<Mechanic>(`/mechanics/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
+  toggle: (id: string) =>
+    request<Mechanic>(`/mechanics/${id}/toggle`, { method: "PATCH" }),
+  delete: (id: string) => request<void>(`/mechanics/${id}`, { method: "DELETE" }),
 };
 
 // Service Orders

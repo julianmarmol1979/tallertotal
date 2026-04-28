@@ -8,7 +8,6 @@ import type { ServiceOrder, ServiceOrderStatus } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Plus, FileSpreadsheet, Download } from "lucide-react";
@@ -222,20 +221,16 @@ export default function OrdenesPage() {
                         {new Date(order.createdAt).toLocaleDateString("es-AR")}
                       </TableCell>
                       <TableCell>
-                        <Select
+                        <select
                           value={order.status}
-                          onValueChange={(v) => v && handleStatusChange(order.id, v as ServiceOrderStatus)}
+                          onChange={(e) => handleStatusChange(order.id, e.target.value as ServiceOrderStatus)}
+                          className="h-8 w-36 rounded-lg border border-input bg-transparent px-2 text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring/50"
                         >
-                          <SelectTrigger className="h-8 w-36 text-xs">
-                            <span className="flex-1 text-left">{STATUS_LABELS[order.status]}</span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Open">Abierta</SelectItem>
-                            <SelectItem value="InProgress">En progreso</SelectItem>
-                            <SelectItem value="Completed">Completada</SelectItem>
-                            <SelectItem value="Cancelled">Cancelada</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <option value="Open">Abierta</option>
+                          <option value="InProgress">En progreso</option>
+                          <option value="Completed">Completada</option>
+                          <option value="Cancelled">Cancelada</option>
+                        </select>
                       </TableCell>
                       <TableCell>
                         <Button

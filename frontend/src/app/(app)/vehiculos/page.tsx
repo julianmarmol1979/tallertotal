@@ -136,10 +136,10 @@ export default function VehiculosPage() {
     setSaving(true);
     try {
       if (editing) {
-        await vehiclesApi.create(dto);
+        await vehiclesApi.update(editing.id, dto as CreateVehicleDto);
         toast.success("Vehículo actualizado");
       } else {
-        await vehiclesApi.create(dto);
+        await vehiclesApi.create(dto as CreateVehicleDto);
         toast.success("Vehículo creado");
       }
       setOpen(false);

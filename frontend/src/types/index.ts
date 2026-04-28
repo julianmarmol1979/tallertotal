@@ -79,3 +79,17 @@ export interface CreateServiceOrderDto {
   assignedMechanic?: string;
   items: CreateServiceItemDto[];
 }
+
+export interface Mechanic {
+  id: string;
+  name: string;
+  phone?: string;
+  specialty?: string;
+  isActive: boolean;
+}
+
+export interface CreateMechanicDto {
+  name: string;
+  phone?: string;
+  specialty?: string;
+}

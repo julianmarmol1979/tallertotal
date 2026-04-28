@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Car, ClipboardList, LogOut } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutDashboard, Users, Car, ClipboardList, Wrench, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MecaFlowLogo } from "@/components/MecaFlowLogo";
 
@@ -11,11 +12,18 @@ const navItems = [
   { href: "/ordenes", label: "Órdenes de Servicio", icon: ClipboardList },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/vehiculos", label: "Vehículos", icon: Car },
+  { href: "/mecanicos", label: "Mecánicos", icon: Wrench },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [tenantName, setTenantName] = useState("");
+
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|;\s*)mecaflow_tenant=([^;]*)/);
+    if (match) setTenantName(decodeURIComponent(match[1]));
+  }, []);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -26,6 +34,11 @@ export function Sidebar() {
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col shrink-0">
       <div className="p-5 border-b border-gray-200">
         <MecaFlowLogo />
+        {tenantName && (
+          <p className="mt-1.5 text-xs text-gray-400 truncate">
+            <span className="text-gray-500 font-medium">Taller:</span> {tenantName}
+          </p>
+        )}
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => (
