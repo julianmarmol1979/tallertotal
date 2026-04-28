@@ -72,9 +72,17 @@ public class VehiclesController(AppDbContext db) : ControllerBase
     {
         var vehicle = await db.Vehicles
             .Include(v => v.Customer)
+            .Include(v => v.ServiceOrders)
+                .ThenInclude(o => o.Items)
             .FirstOrDefaultAsync(v => v.Id == id && v.Customer.TenantId == TenantId);
         if (vehicle is null) return NotFound();
+
+        // Remove service items, orders, then vehicle explicitly to avoid FK issues
+        foreach (var order in vehicle.ServiceOrders)
+            db.ServiceItems.RemoveRange(order.Items);
+        db.ServiceOrders.RemoveRange(vehicle.ServiceOrders);
         db.Vehicles.Remove(vehicle);
+
         await db.SaveChangesAsync();
         return NoContent();
     }

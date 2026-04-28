@@ -163,8 +163,8 @@ export default function VehiculosPage() {
       toast.success("Vehículo eliminado");
       setDeleteTarget(null);
       load();
-    } catch {
-      toast.error("Error al eliminar vehículo");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar vehículo");
     } finally {
       setDeleting(false);
     }
