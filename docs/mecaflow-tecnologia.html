@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MecaFlow — Tecnología y Servicios</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #fff;
+      padding: 40px 48px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Cover ── */
+    .cover {
+      text-align: center;
+      padding: 60px 0 48px;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 40px;
+    }
+    .cover .logo {
+      font-size: 38px;
+      font-weight: 800;
+      color: #1e40af;
+      letter-spacing: -1px;
+    }
+    .cover .logo span { color: #f59e0b; }
+    .cover .subtitle {
+      font-size: 16px;
+      color: #64748b;
+      margin-top: 8px;
+      font-weight: 400;
+    }
+    .cover .doc-label {
+      display: inline-block;
+      margin-top: 20px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 4px 16px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .cover .date {
+      margin-top: 12px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    /* ── Sections ── */
+    h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e40af;
+      margin: 32px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1.5px solid #bfdbfe;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #374151;
+      margin: 18px 0 8px;
+    }
+
+    /* ── Tech grid ── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 4px;
+    }
+    .tech-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .tech-card .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #1d4ed8;
+      margin-bottom: 8px;
+    }
+    .tech-card ul {
+      list-style: none;
+      padding: 0;
+    }
+    .tech-card ul li {
+      font-size: 12px;
+      color: #374151;
+      padding: 2px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .tech-card ul li::before {
+      content: "▸";
+      color: #93c5fd;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .tech-card ul li strong { color: #1e3a8a; }
+
+    /* ── Env vars table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    thead tr {
+      background: #eff6ff;
+    }
+    th {
+      text-align: left;
+      padding: 7px 12px;
+      font-weight: 700;
+      color: #1e40af;
+      border-bottom: 1.5px solid #bfdbfe;
+    }
+    td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #374151;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code {
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 11px;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+
+    /* ── Architecture diagram ── */
+    .arch {
+      margin: 16px 0;
+      padding: 20px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .arch-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 6px 0;
+      flex-wrap: wrap;
+    }
+    .arch-box {
+      background: #fff;
+      border: 1.5px solid #93c5fd;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-weight: 600;
+      color: #1e40af;
+      font-size: 11.5px;
+    }
+    .arch-box.green { border-color: #6ee7b7; color: #065f46; }
+    .arch-box.orange { border-color: #fcd34d; color: #92400e; }
+    .arch-box.gray { border-color: #cbd5e1; color: #475569; }
+    .arch-arrow { color: #64748b; font-size: 16px; }
+    .arch-label {
+      font-size: 10px;
+      color: #64748b;
+      margin: 2px 0 8px;
+    }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-yellow { background: #fef9c3; color: #854d0e; }
+
+    /* ── Print ── */
+    @media print {
+      body { padding: 24px 32px; }
+      .cover { padding: 40px 0 32px; }
+      h2 { break-before: auto; }
+      .tech-card, .arch, table { break-inside: avoid; }
+      @page { margin: 1.5cm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cover">
+    <div class="logo">Meca<span>Flow</span></div>
+    <div class="subtitle">Sistema de gestión para talleres mecánicos</div>
+    <div class="doc-label">Parte 1 — Tecnología y Servicios</div>
+    <div class="date">Abril 2026</div>
+  </div>
+
+  <!-- ARQUITECTURA -->
+  <h2>🏗️ Diagrama de Arquitectura</h2>
+  <div class="arch">
+    <div class="arch-label">Usuario / Navegador</div>
+    <div class="arch-row">
+      <div class="arch-box">Navegador (cliente)</div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↕ HTTPS</span></div>
+    <div class="arch-row">
+      <div class="arch-box green">Frontend — Next.js 15<br/><span style="font-weight:400;font-size:10px">Vercel</span></div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↕ HTTP (proxy interno)</span></div>
+    <div class="arch-row">
+      <div class="arch-box">.NET 9 Web API<br/><span style="font-weight:400;font-size:10px">Railway</span></div>
+      <span class="arch-arrow">↔</span>
+      <div class="arch-box gray">PostgreSQL<br/><span style="font-weight:400;font-size:10px">Railway</span></div>
+    </div>
+    <div class="arch-row"><span class="arch-arrow">↕ HTTP</span></div>
+    <div class="arch-row">
+      <div class="arch-box orange">Evolution API (WhatsApp)<br/><span style="font-weight:400;font-size:10px">Servidor propio</span></div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-box green">📱 WhatsApp cliente</div>
+    </div>
+  </div>
+
+  <!-- STACK TECNOLÓGICO -->
+  <h2>⚙️ Stack Tecnológico</h2>
+  <div class="tech-grid">
+
+    <div class="tech-card">
+      <div class="card-title">Frontend</div>
+      <ul>
+        <li><strong>Next.js 15</strong> — App Router, SSR/CSR</li>
+        <li><strong>TypeScript</strong> — tipado estático completo</li>
+        <li><strong>Tailwind CSS</strong> — utilidades de diseño</li>
+        <li><strong>shadcn/ui</strong> — componentes base (Dialog, Table, Card...)</li>
+        <li><strong>Lucide React</strong> — íconos vectoriales</li>
+        <li><strong>Sonner</strong> — notificaciones toast</li>
+        <li><strong>SheetJS (xlsx)</strong> — exportación Excel en cliente</li>
+      </ul>
+    </div>
+
+    <div class="tech-card">
+      <div class="card-title">Backend</div>
+      <ul>
+        <li><strong>.NET 9</strong> — runtime y SDK</li>
+        <li><strong>ASP.NET Core Web API</strong> — controllers REST</li>
+        <li><strong>Entity Framework Core 9</strong> — ORM con migraciones</li>
+        <li><strong>Npgsql</strong> — driver PostgreSQL para EF</li>
+        <li><strong>JWT Bearer Auth</strong> — tokens firmados con HMAC-SHA256</li>
+        <li><strong>BackgroundService</strong> — health check de WhatsApp</li>
+      </ul>
+    </div>
+
+    <div class="tech-card">
+      <div class="card-title">Infraestructura</div>
+      <ul>
+        <li><strong>Vercel</strong> — hosting del frontend (Next.js)</li>
+        <li><strong>Railway</strong> — hosting del backend .NET y PostgreSQL</li>
+        <li><strong>GitHub</strong> — repositorio, CI/CD automático en push</li>
+        <li>Deploy automático en cada push a <code>main</code></li>
+        <li>Migraciones de BD aplicadas automáticamente al iniciar</li>
+      </ul>
+    </div>
+
+    <div class="tech-card">
+      <div class="card-title">Integraciones</div>
+      <ul>
+        <li><strong>Evolution API v1.7.4</strong> — servidor WhatsApp propio (Baileys)</li>
+        <li>Envío de mensajes a clientes via WhatsApp Business</li>
+        <li>Health check automático cada 5 min con auto-reconexión</li>
+        <li>Sesión persistida en archivos (no pierde conexión en restarts)</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- AUTENTICACIÓN -->
+  <h2>🔐 Autenticación y Sesión</h2>
+  <div class="tech-grid">
+    <div class="tech-card">
+      <div class="card-title">Flujo de login</div>
+      <ul>
+        <li>Usuario envía credenciales al backend</li>
+        <li>Backend valida y devuelve JWT firmado</li>
+        <li>Next.js guarda el JWT en cookie <code>httpOnly</code> (no accesible desde JS)</li>
+        <li>Cookie <code>mecaflow_tenant</code> guarda el nombre del taller (readable)</li>
+        <li>Proxy en <code>/api/proxy/[...path]</code> inyecta el JWT en cada request</li>
+      </ul>
+    </div>
+    <div class="tech-card">
+      <div class="card-title">Claims del JWT</div>
+      <ul>
+        <li><code>tenantId</code> — ID del taller del usuario</li>
+        <li><code>username</code> — nombre de usuario</li>
+        <li><code>role</code> — <code>Admin</code>, <code>User</code> o <code>SuperAdmin</code></li>
+        <li>Issuer y Audience: <code>mecaflow</code></li>
+        <li>Cada query del backend filtra por <code>tenantId</code> automáticamente</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- MULTI-TENANT -->
+  <h2>🏢 Arquitectura Multi-Tenant</h2>
+  <p style="margin-bottom:12px;color:#374151;">
+    Cada taller (tenant) es completamente aislado. Los datos nunca se mezclan entre talleres. El <code>tenantId</code> se extrae del JWT en cada request y filtra todas las queries automáticamente.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Entidad</th><th>Relación con Tenant</th><th>Cascade delete</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Usuarios</td><td>Directa (FK → Tenant)</td><td>Sí</td></tr>
+      <tr><td>Clientes</td><td>Directa (FK → Tenant)</td><td>Sí</td></tr>
+      <tr><td>Mecánicos</td><td>Directa (FK → Tenant)</td><td>Sí</td></tr>
+      <tr><td>Vehículos</td><td>Via Cliente → Tenant</td><td>Sí (en cascada)</td></tr>
+      <tr><td>Órdenes de Servicio</td><td>Via Vehículo → Cliente → Tenant</td><td>Sí (en cascada)</td></tr>
+      <tr><td>Items de Servicio</td><td>Via Orden → Vehículo → Tenant</td><td>Sí (en cascada)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- MODELO DE DATOS -->
+  <h2>🗄️ Modelo de Datos</h2>
+  <table>
+    <thead>
+      <tr><th>Tabla</th><th>Campos principales</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tenants</strong></td>
+        <td>Id, Name, IsActive, CreatedAt</td>
+      </tr>
+      <tr>
+        <td><strong>Users</strong></td>
+        <td>Id, TenantId, Username, PasswordHash (BCrypt), Role, CreatedAt</td>
+      </tr>
+      <tr>
+        <td><strong>Customers</strong></td>
+        <td>Id, TenantId, Name, Phone, Email, CreatedAt</td>
+      </tr>
+      <tr>
+        <td><strong>Vehicles</strong></td>
+        <td>Id, CustomerId, LicensePlate, Brand, Model, Year, Color, Notes</td>
+      </tr>
+      <tr>
+        <td><strong>Mechanics</strong></td>
+        <td>Id, TenantId, Name, Phone, Specialty, IsActive</td>
+      </tr>
+      <tr>
+        <td><strong>ServiceOrders</strong></td>
+        <td>Id, VehicleId, Status, DiagnosisNotes, InternalNotes, MileageIn, AssignedMechanic, EstimatedDeliveryAt, TotalEstimate, TotalFinal, CreatedAt, CompletedAt</td>
+      </tr>
+      <tr>
+        <td><strong>ServiceItems</strong></td>
+        <td>Id, ServiceOrderId, Description, Type (Labor/Part), Quantity, UnitPrice</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- VARIABLES DE ENTORNO -->
+  <h2>🔑 Variables de Entorno</h2>
+  <table>
+    <thead>
+      <tr><th>Variable</th><th>Servicio</th><th>Descripción</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>ConnectionStrings__Default</code></td>
+        <td>Railway (backend)</td>
+        <td>Cadena de conexión a PostgreSQL</td>
+      </tr>
+      <tr>
+        <td><code>JWT_SECRET</code></td>
+        <td>Railway (backend)</td>
+        <td>Clave secreta para firmar tokens JWT (mín. 32 chars)</td>
+      </tr>
+      <tr>
+        <td><code>AllowedOrigins</code></td>
+        <td>Railway (backend)</td>
+        <td>Origins permitidos por CORS (ej: <code>https://mecaflow.vercel.app</code>)</td>
+      </tr>
+      <tr>
+        <td><code>Evolution__BaseUrl</code></td>
+        <td>Railway (backend)</td>
+        <td>URL base de Evolution API (ej: <code>https://evo.midominio.com</code>)</td>
+      </tr>
+      <tr>
+        <td><code>Evolution__ApiKey</code></td>
+        <td>Railway (backend)</td>
+        <td>API key de Evolution API</td>
+      </tr>
+      <tr>
+        <td><code>Evolution__Instance</code></td>
+        <td>Railway (backend)</td>
+        <td>Nombre de la instancia de WhatsApp (ej: <code>mecaflow</code>)</td>
+      </tr>
+      <tr>
+        <td><code>NEXT_PUBLIC_API_URL</code> / <code>BACKEND_URL</code></td>
+        <td>Vercel (frontend)</td>
+        <td>URL del backend de Railway para el proxy</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- WHATSAPP HEALTH SERVICE -->
+  <h2>📡 Servicio de Health Check WhatsApp</h2>
+  <div class="tech-card" style="max-width:100%">
+    <div class="card-title">WhatsAppHealthService — BackgroundService</div>
+    <ul>
+      <li>Se inicia 30 segundos después del boot de la app (para no interferir con el arranque)</li>
+      <li>Verifica el estado de la instancia de WhatsApp cada <strong>5 minutos</strong></li>
+      <li>Si el estado es <code>open</code> → no hace nada, resetea el contador de fallos</li>
+      <li>Si el estado es <code>close</code> → llama a <code>/instance/connect/{instance}</code> para reconectar</li>
+      <li>Espera hasta <strong>15 segundos</strong> (3 intentos × 5s) verificando si alcanzó estado <code>open</code></li>
+      <li>Si reconecta solo → logea éxito. Si no → logea advertencia con contador de intentos fallidos</li>
+      <li>Nunca lanza excepciones (todo el bloque está en try/catch) para no derribar la app</li>
+    </ul>
+  </div>
+
+</body>
+</html>

@@ -158,6 +158,25 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
         }
     }
 
+    public Task SendQuoteAsync(ServiceOrder order)
+    {
+        var phone = order.Vehicle.Customer.Phone;
+        var name = order.Vehicle.Customer.Name.Split(' ')[0];
+        var plate = order.Vehicle.LicensePlate;
+        var total = order.TotalEstimate.ToString("N0");
+        var text = $"📋 Hola *{name}*! El presupuesto para tu *{plate}* es de *${total}*. Contactanos para confirmarlo y continuar.";
+        return SendAsync(phone, text);
+    }
+
+    public Task SendReminderAsync(ServiceOrder order, int daysSinceActivity)
+    {
+        var phone = order.Vehicle.Customer.Phone;
+        var name = order.Vehicle.Customer.Name.Split(' ')[0];
+        var plate = order.Vehicle.LicensePlate;
+        var text = $"⏰ Hola *{name}*! Tu vehículo *{plate}* lleva {daysSinceActivity} días en el taller sin novedades. Pronto te damos una actualización.";
+        return SendAsync(phone, text);
+    }
+
     private async Task SendAsync(string rawPhone, string text)
     {
         if (!IsConfigured)

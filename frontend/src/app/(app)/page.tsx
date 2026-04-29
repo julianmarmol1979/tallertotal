@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { serviceOrdersApi } from "@/lib/api";
-import type { ServiceOrder, ServiceOrderStatus } from "@/types";
+import { serviceOrdersApi, dashboardApi } from "@/lib/api";
+import type { ServiceOrder, ServiceOrderStatus, DashboardMetrics } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,7 +12,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ClipboardList, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  ClipboardList, Clock, CheckCircle, AlertCircle,
+  TrendingUp, TrendingDown, Minus, DollarSign, Wrench,
+} from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 
@@ -26,6 +29,7 @@ const STATUS_TABS: { value: ServiceOrderStatus | "all"; label: string }[] = [
 export default function DashboardPage() {
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [allOrders, setAllOrders] = useState<ServiceOrder[]>([]);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ServiceOrderStatus | "all">("all");
   const [search, setSearch] = useState("");
@@ -34,10 +38,14 @@ export default function DashboardPage() {
 
   const loadAll = useCallback(async () => {
     try {
-      const data = await serviceOrdersApi.getAll();
+      const [data, m] = await Promise.all([
+        serviceOrdersApi.getAll(),
+        dashboardApi.getMetrics(),
+      ]);
       setAllOrders(data);
+      setMetrics(m);
     } catch {
-      // silently ignore counts error
+      // silently ignore
     }
   }, []);
 
@@ -92,6 +100,16 @@ export default function DashboardPage() {
     total: allOrders.length,
   };
 
+  // Delta helpers
+  const delta = (current: number, previous: number) => {
+    if (previous === 0) return null;
+    return ((current - previous) / previous) * 100;
+  };
+  const revDelta = delta(metrics?.revenueThisMonth ?? 0, metrics?.revenueLastMonth ?? 0);
+  const ordDelta = delta(metrics?.ordersThisMonth ?? 0, metrics?.ordersLastMonth ?? 0);
+
+  const monthName = new Date().toLocaleString("es-AR", { month: "long" });
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
@@ -99,6 +117,85 @@ export default function DashboardPage() {
         <p className="text-sm text-gray-500 mt-1">Resumen del taller</p>
       </div>
 
+      {/* ── Métricas del mes ── */}
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          Métricas de {monthName}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Ingresos */}
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Ingresos del mes</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    ${(metrics?.revenueThisMonth ?? 0).toLocaleString("es-AR", { minimumFractionDigits: 0 })}
+                  </p>
+                  {revDelta !== null && (
+                    <p className={`text-xs mt-1 flex items-center gap-0.5 ${revDelta >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {revDelta > 0 ? <TrendingUp className="h-3 w-3" /> : revDelta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                      {revDelta > 0 ? "+" : ""}{revDelta.toFixed(1)}% vs mes anterior
+                    </p>
+                  )}
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-50">
+                  <DollarSign className="h-5 w-5 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Órdenes este mes */}
+          <Card className="border-l-4 border-l-blue-500">
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Órdenes del mes</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{metrics?.ordersThisMonth ?? 0}</p>
+                  {ordDelta !== null && (
+                    <p className={`text-xs mt-1 flex items-center gap-0.5 ${ordDelta >= 0 ? "text-blue-600" : "text-red-500"}`}>
+                      {ordDelta > 0 ? <TrendingUp className="h-3 w-3" /> : ordDelta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                      {ordDelta > 0 ? "+" : ""}{ordDelta.toFixed(1)}% vs mes anterior
+                    </p>
+                  )}
+                </div>
+                <div className="p-2.5 rounded-xl bg-blue-50">
+                  <ClipboardList className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Mecánico más activo */}
+          <Card className="border-l-4 border-l-violet-500">
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Mecánico más activo</p>
+                  {metrics?.topMechanic ? (
+                    <>
+                      <p className="text-lg font-bold text-gray-900 mt-1 truncate max-w-[160px]">
+                        {metrics.topMechanic.name}
+                      </p>
+                      <p className="text-xs text-violet-600 mt-0.5">
+                        {metrics.topMechanic.orderCount} orden{metrics.topMechanic.orderCount !== 1 ? "es" : ""} este mes
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 mt-2">Sin datos este mes</p>
+                  )}
+                </div>
+                <div className="p-2.5 rounded-xl bg-violet-50">
+                  <Wrench className="h-5 w-5 text-violet-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* ── KPIs de estado ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard icon={<ClipboardList className="h-5 w-5 text-blue-600" />} label="Total" value={counts.total} borderClass="border-l-4 border-l-blue-500" iconBgClass="bg-blue-50" />
         <KpiCard icon={<AlertCircle className="h-5 w-5 text-sky-500" />} label="Abiertas" value={counts.open} borderClass="border-l-4 border-l-sky-400" iconBgClass="bg-sky-50" />
@@ -106,6 +203,7 @@ export default function DashboardPage() {
         <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-500" />} label="Completadas" value={counts.completed} borderClass="border-l-4 border-l-green-500" iconBgClass="bg-green-50" />
       </div>
 
+      {/* ── Tabla ── */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Órdenes de Servicio</CardTitle>
@@ -117,7 +215,7 @@ export default function DashboardPage() {
                 <button
                   key={tab.value}
                   onClick={() => setActiveTab(tab.value)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     activeTab === tab.value
                       ? "bg-white text-gray-900 shadow-sm"
                       : "text-gray-500 hover:text-gray-700"

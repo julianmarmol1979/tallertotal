@@ -3,6 +3,9 @@ import type {
   Vehicle,
   ServiceOrder,
   ServiceOrderStatus,
+  ServiceOrderLog,
+  DashboardMetrics,
+  QuoteStatus,
   CreateCustomerDto,
   CreateVehicleDto,
   CreateServiceOrderDto,
@@ -70,13 +73,23 @@ export const mechanicsApi = {
 
 // Service Orders
 export const serviceOrdersApi = {
-  getAll: (params?: { status?: ServiceOrderStatus; plate?: string; customer?: string; mechanic?: string; vehicleId?: string }) => {
+  getAll: (params?: {
+    status?: ServiceOrderStatus;
+    plate?: string;
+    customer?: string;
+    mechanic?: string;
+    vehicleId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.plate) qs.set("plate", params.plate);
     if (params?.customer) qs.set("customer", params.customer);
     if (params?.mechanic) qs.set("mechanic", params.mechanic);
     if (params?.vehicleId) qs.set("vehicleId", params.vehicleId);
+    if (params?.dateFrom) qs.set("dateFrom", params.dateFrom);
+    if (params?.dateTo) qs.set("dateTo", params.dateTo);
     const q = qs.toString();
     return request<ServiceOrder[]>(`/serviceorders${q ? `?${q}` : ""}`);
   },
@@ -88,6 +101,18 @@ export const serviceOrdersApi = {
       method: "PATCH",
       body: JSON.stringify(status),
     }),
+  updateQuote: (id: string, quoteStatus: QuoteStatus) =>
+    request<ServiceOrder>(`/serviceorders/${id}/quote`, {
+      method: "PATCH",
+      body: JSON.stringify(quoteStatus),
+    }),
+  getLogs: (id: string) =>
+    request<ServiceOrderLog[]>(`/serviceorders/${id}/logs`),
+};
+
+// Dashboard
+export const dashboardApi = {
+  getMetrics: () => request<DashboardMetrics>("/dashboard/metrics"),
 };
 
 // Admin API — calls go to proxy which forwards to backend with SuperAdmin JWT

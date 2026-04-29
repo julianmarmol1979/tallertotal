@@ -38,6 +38,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHostedService<WhatsAppHealthService>();
+builder.Services.AddHostedService<WhatsAppReminderService>();
 
 var allowedOrigins = (builder.Configuration["AllowedOrigins"] ?? "http://localhost:3000")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<ServiceOrder> ServiceOrders => Set<ServiceOrder>();
     public DbSet<ServiceItem> ServiceItems => Set<ServiceItem>();
+    public DbSet<ServiceOrderLog> ServiceOrderLogs => Set<ServiceOrderLog>();
     public DbSet<Mechanic> Mechanics => Set<Mechanic>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -64,6 +65,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(x => x.Id);
             e.Property(x => x.Status).HasConversion<string>();
+            e.Property(x => x.QuoteStatus).HasConversion<string>().HasDefaultValue(QuoteStatus.None);
             e.Property(x => x.TotalEstimate).HasPrecision(10, 2);
             e.Property(x => x.TotalFinal).HasPrecision(10, 2);
             e.Property(x => x.AssignedMechanic).HasMaxLength(100);
@@ -71,6 +73,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(x => x.Vehicle)
                 .WithMany(x => x.ServiceOrders)
                 .HasForeignKey(x => x.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ServiceOrderLog>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Event).HasMaxLength(50).IsRequired();
+            e.Property(x => x.OldValue).HasMaxLength(100);
+            e.Property(x => x.NewValue).HasMaxLength(100);
+            e.Property(x => x.ChangedBy).HasMaxLength(100).IsRequired();
+            e.HasOne(x => x.ServiceOrder)
+                .WithMany(x => x.Logs)
+                .HasForeignKey(x => x.ServiceOrderId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

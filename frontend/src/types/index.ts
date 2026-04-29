@@ -1,5 +1,6 @@
 export type ServiceOrderStatus = "Open" | "InProgress" | "Completed" | "Cancelled";
 export type ServiceItemType = "Labor" | "Part";
+export type QuoteStatus = "None" | "Pending" | "Approved" | "Rejected";
 
 export interface Customer {
   id: string;
@@ -48,7 +49,27 @@ export interface ServiceOrder {
   totalFinal: number;
   createdAt: string;
   completedAt?: string;
+  quoteStatus: QuoteStatus;
+  lastActivityAt: string;
   items: ServiceItem[];
+}
+
+export interface ServiceOrderLog {
+  id: string;
+  event: string;
+  oldValue?: string;
+  newValue?: string;
+  changedBy: string;
+  changedAt: string;
+}
+
+export interface DashboardMetrics {
+  revenueThisMonth: number;
+  revenueLastMonth: number;
+  ordersThisMonth: number;
+  ordersLastMonth: number;
+  ordersByStatus: { status: string; count: number; revenue: number }[];
+  topMechanic?: { name: string; orderCount: number };
 }
 
 export interface CreateCustomerDto {

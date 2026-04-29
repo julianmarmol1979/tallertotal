@@ -14,7 +14,11 @@ public class ServiceOrder
     public decimal TotalFinal { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+    public QuoteStatus QuoteStatus { get; set; } = QuoteStatus.None;
+    public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ReminderSentAt { get; set; }
 
     public Vehicle Vehicle { get; set; } = null!;
     public ICollection<ServiceItem> Items { get; set; } = [];
+    public ICollection<ServiceOrderLog> Logs { get; set; } = [];
 }

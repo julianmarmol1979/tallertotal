@@ -58,5 +58,28 @@ public record ServiceOrderDto(
     decimal TotalFinal,
     DateTime CreatedAt,
     DateTime? CompletedAt,
-    List<ServiceItemDto> Items
+    List<ServiceItemDto> Items,
+    QuoteStatus QuoteStatus,
+    DateTime LastActivityAt
 );
+
+public record ServiceOrderLogDto(
+    Guid Id,
+    string Event,
+    string? OldValue,
+    string? NewValue,
+    string ChangedBy,
+    DateTime ChangedAt
+);
+
+public record DashboardMetricsDto(
+    decimal RevenueThisMonth,
+    decimal RevenueLastMonth,
+    int OrdersThisMonth,
+    int OrdersLastMonth,
+    IEnumerable<StatusCountDto> OrdersByStatus,
+    TopMechanicDto? TopMechanic
+);
+
+public record StatusCountDto(string Status, int Count, decimal Revenue);
+public record TopMechanicDto(string Name, int OrderCount);

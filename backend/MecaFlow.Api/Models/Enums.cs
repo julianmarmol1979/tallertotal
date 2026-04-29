@@ -19,3 +19,11 @@ public enum UserRole
     Owner,
     Mechanic
 }
+
+public enum QuoteStatus
+{
+    None,
+    Pending,
+    Approved,
+    Rejected
+}

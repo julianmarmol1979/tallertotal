@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MecaFlow — Funcionalidad Implementada</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #fff;
+      padding: 40px 48px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Cover ── */
+    .cover {
+      text-align: center;
+      padding: 60px 0 48px;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 40px;
+    }
+    .cover .logo {
+      font-size: 38px;
+      font-weight: 800;
+      color: #1e40af;
+      letter-spacing: -1px;
+    }
+    .cover .logo span { color: #f59e0b; }
+    .cover .subtitle {
+      font-size: 16px;
+      color: #64748b;
+      margin-top: 8px;
+      font-weight: 400;
+    }
+    .cover .doc-label {
+      display: inline-block;
+      margin-top: 20px;
+      background: #d1fae5;
+      color: #065f46;
+      font-weight: 600;
+      font-size: 12px;
+      padding: 4px 16px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .cover .date {
+      margin-top: 12px;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    /* ── Section headers ── */
+    h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e40af;
+      margin: 36px 0 12px;
+      padding: 8px 14px;
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3 {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #374151;
+      margin: 16px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* ── Feature list ── */
+    .feature-block {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .feature-block .block-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feature-block ul {
+      list-style: none;
+      padding: 0;
+    }
+    .feature-block ul li {
+      font-size: 12px;
+      color: #374151;
+      padding: 2.5px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      line-height: 1.5;
+    }
+    .feature-block ul li::before {
+      content: "✓";
+      color: #22c55e;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .feature-block ul li.note::before { content: "ℹ"; color: #f59e0b; }
+    .feature-block ul li strong { color: #1e3a8a; }
+
+    /* ── Two-col grid ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* ── Step wizard ── */
+    .steps {
+      display: flex;
+      gap: 0;
+      margin: 12px 0;
+      align-items: stretch;
+    }
+    .step {
+      flex: 1;
+      background: #eff6ff;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 0;
+      padding: 10px 14px;
+      font-size: 11.5px;
+      position: relative;
+    }
+    .step:first-child { border-radius: 8px 0 0 8px; }
+    .step:last-child  { border-radius: 0 8px 8px 0; }
+    .step .step-num {
+      display: inline-block;
+      background: #3b82f6;
+      color: #fff;
+      font-weight: 700;
+      font-size: 10px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 18px;
+      margin-bottom: 5px;
+    }
+    .step .step-title {
+      font-weight: 700;
+      color: #1e40af;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .step ul {
+      list-style: none;
+      padding: 0;
+    }
+    .step ul li {
+      font-size: 11px;
+      color: #374151;
+      padding: 1px 0;
+    }
+    .step ul li::before { content: "· "; color: #93c5fd; }
+
+    /* ── WhatsApp messages ── */
+    .wa-message {
+      background: #dcfce7;
+      border: 1px solid #86efac;
+      border-radius: 10px 10px 10px 0;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #14532d;
+      margin: 6px 0;
+      position: relative;
+    }
+    .wa-trigger {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+
+    /* ── Role badge ── */
+    .role {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 8px;
+      border-radius: 12px;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .role-admin { background: #fef3c7; color: #92400e; }
+    .role-super { background: #fee2e2; color: #991b1b; }
+    .role-user  { background: #f0fdf4; color: #166534; }
+
+    /* ── Export chips ── */
+    .export-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      padding: 2px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #166534;
+      margin: 2px;
+    }
+
+    code {
+      font-family: 'Cascadia Code', monospace;
+      font-size: 11px;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #0f172a;
+    }
+
+    p { color: #374151; font-size: 12.5px; margin-bottom: 10px; }
+
+    /* ── Print ── */
+    @media print {
+      body { padding: 24px 32px; }
+      .cover { padding: 40px 0 32px; }
+      h2 { break-before: auto; }
+      .feature-block, .steps, .wa-message { break-inside: avoid; }
+      @page { margin: 1.5cm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cover">
+    <div class="logo">Meca<span>Flow</span></div>
+    <div class="subtitle">Sistema de gestión para talleres mecánicos</div>
+    <div class="doc-label">Parte 2 — Funcionalidad Implementada</div>
+    <div class="date">Abril 2026</div>
+  </div>
+
+  <!-- LOGIN -->
+  <h2>🔐 Login — <code>/login</code></h2>
+  <div class="feature-block">
+    <div class="block-title">Pantalla de acceso al sistema</div>
+    <ul>
+      <li>Formulario con usuario y contraseña</li>
+      <li>Llama al backend, recibe JWT y lo guarda en cookie <code>httpOnly</code> (segura, no accesible desde JS)</li>
+      <li>Guarda el nombre del taller en cookie readable para mostrarlo en el sidebar</li>
+      <li>Usuarios con rol <strong>Admin</strong> o <strong>User</strong> → redirige al dashboard del taller</li>
+      <li>Usuarios con rol <strong>SuperAdmin</strong> → redirige al panel de administración</li>
+      <li class="note">El botón de logout limpia ambas cookies y redirige al login</li>
+    </ul>
+  </div>
+
+  <!-- ADMIN -->
+  <h2>🛡️ Panel de Administración — <code>/admin</code> <span class="role role-super">SuperAdmin</span></h2>
+  <div class="two-col">
+    <div class="feature-block">
+      <div class="block-title">Gestión de talleres</div>
+      <ul>
+        <li>Lista todos los talleres con nombre, fecha de alta y cantidad de usuarios</li>
+        <li>Crear nuevo taller ingresando solo el nombre</li>
+        <li>Activar / desactivar taller con un toggle</li>
+      </ul>
+    </div>
+    <div class="feature-block">
+      <div class="block-title">Gestión de usuarios por taller</div>
+      <ul>
+        <li>Ver usuarios del taller (username, rol, fecha)</li>
+        <li>Crear usuario: username, contraseña y rol (<code>Admin</code> o <code>User</code>)</li>
+        <li>Eliminar usuario</li>
+      </ul>
+    </div>
+  </div>
+  <div class="feature-block">
+    <div class="block-title">📱 Panel de WhatsApp</div>
+    <ul>
+      <li>Botón "Verificar estado" → muestra si Evolution API está conectado (<code>open</code>) o desconectado</li>
+      <li>Ícono verde/rojo indicando el estado de conexión en tiempo real</li>
+      <li>Si hay error muestra el detalle técnico en texto rojo</li>
+      <li>Formulario para enviar un mensaje de prueba: teléfono + mensaje libre</li>
+      <li>Cuando está desconectado muestra instrucciones para escanear QR en el panel de Evolution API</li>
+    </ul>
+  </div>
+
+  <!-- DASHBOARD -->
+  <h2>📊 Dashboard — <code>/</code></h2>
+  <div class="feature-block">
+    <div class="block-title">Vista principal del taller</div>
+    <ul>
+      <li>Contadores del día: órdenes abiertas, en progreso, completadas hoy</li>
+      <li>Lista de las últimas órdenes recientes con estado y placa</li>
+      <li>Cambio rápido de estado de una orden directamente desde el dashboard</li>
+    </ul>
+  </div>
+
+  <!-- ÓRDENES -->
+  <h2>📋 Órdenes de Servicio — <code>/ordenes</code></h2>
+  <div class="feature-block">
+    <div class="block-title">Listado de órdenes</div>
+    <ul>
+      <li>Tabla completa con: placa, vehículo, cliente (nombre + teléfono), mecánico, estado, total estimado, entrega estimada, fecha de ingreso</li>
+      <li>Si la orden tiene notas internas → aparecen en naranja itálico bajo el mecánico (solo visible para el taller)</li>
+    </ul>
+  </div>
+  <div class="two-col">
+    <div class="feature-block">
+      <div class="block-title">Filtros</div>
+      <ul>
+        <li>Tabs por estado: Todas / Abiertas / En progreso / Completadas / Canceladas</li>
+        <li>Buscador libre: placa, cliente o mecánico</li>
+        <li>Dropdown por mecánico específico (cargado desde el listado del taller)</li>
+      </ul>
+    </div>
+    <div class="feature-block">
+      <div class="block-title">Ordenamiento por columna</div>
+      <ul>
+        <li>Click en header para ordenar: placa, cliente, mecánico, estado, total estimado, entrega estimada, fecha ingreso</li>
+        <li>Click doble invierte asc/desc, flechita visual en el header activo</li>
+      </ul>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="feature-block">
+      <div class="block-title">Paginación</div>
+      <ul>
+        <li>20 órdenes por página</li>
+        <li>Controles Anterior / Siguiente</li>
+        <li>Contador "X resultados — página N de M"</li>
+        <li>Se resetea automáticamente al cambiar filtros</li>
+      </ul>
+    </div>
+    <div class="feature-block">
+      <div class="block-title">Cambio de estado inline</div>
+      <ul>
+        <li>Dropdown nativo por cada fila</li>
+        <li>Al cambiar → guarda en BD y dispara notificación WhatsApp al cliente</li>
+      </ul>
+    </div>
+  </div>
+  <div class="feature-block">
+    <div class="block-title">Selección y exportación</div>
+    <ul>
+      <li>Checkbox por fila + checkbox "seleccionar todo" con estado indeterminate visual</li>
+      <li>Filas seleccionadas resaltadas en azul claro</li>
+      <li>Botón siempre visible: <strong>"Exportar todas (N)"</strong> si nada está seleccionado, o <strong>"Exportar X seleccionadas"</strong> si hay selección activa</li>
+      <li>Exportar una orden individual con botón de descarga por fila</li>
+      <li>Archivo <code>.xlsx</code> con: placa, vehículo, cliente, teléfono, mecánico, estado, total estimado, total final, fecha</li>
+    </ul>
+  </div>
+
+  <!-- NUEVA ORDEN -->
+  <h2>➕ Nueva Orden — <code>/ordenes/nueva</code></h2>
+  <p>Wizard de 3 pasos con stepper visual. Cada paso se desbloquea al completar el anterior.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <span class="step-title">Cliente</span>
+      <ul>
+        <li>Buscador en tiempo real por nombre o teléfono</li>
+        <li>Seleccionar cliente existente</li>
+      </ul>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <span class="step-title">Vehículo</span>
+      <ul>
+        <li>Lista los vehículos del cliente seleccionado</li>
+        <li>Seleccionar vehículo existente</li>
+      </ul>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <span class="step-title">Detalle</span>
+      <ul>
+        <li>Fecha estimada de entrega</li>
+        <li>Mecánico asignado (dropdown)</li>
+        <li>Kilometraje de entrada</li>
+        <li>Diagnóstico / Notas</li>
+        <li>Notas internas (solo taller)</li>
+        <li>Items (mano de obra o repuestos)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="feature-block">
+    <div class="block-title">Items de servicio</div>
+    <ul>
+      <li>Agregar múltiples ítems de tipo <strong>Mano de obra</strong> o <strong>Repuesto</strong></li>
+      <li>Cada ítem tiene: descripción, tipo, cantidad y precio unitario</li>
+      <li>El total estimado se calcula automáticamente sumando todos los ítems</li>
+      <li>Al crear → envía mensaje WhatsApp al cliente avisando que el vehículo ingresó al taller</li>
+    </ul>
+  </div>
+
+  <!-- CLIENTES -->
+  <h2>👥 Clientes — <code>/clientes</code></h2>
+  <div class="feature-block">
+    <div class="block-title">Gestión completa de clientes</div>
+    <ul>
+      <li>Tabla con nombre, teléfono, email, cantidad de vehículos y fecha de alta</li>
+      <li>Buscador en tiempo real por nombre o teléfono</li>
+      <li>Crear cliente: nombre (requerido), teléfono y email (opcionales)</li>
+      <li>Editar cliente desde el listado</li>
+      <li>Eliminar con diálogo de confirmación (elimina en cascada sus vehículos y órdenes)</li>
+      <li>Selección múltiple + exportar a Excel (todos o seleccionados)</li>
+    </ul>
+  </div>
+
+  <!-- VEHÍCULOS -->
+  <h2>🚗 Vehículos — <code>/vehiculos</code></h2>
+  <div class="feature-block">
+    <div class="block-title">Gestión completa de vehículos</div>
+    <ul>
+      <li>Tabla con placa, marca/modelo/año, color, cliente propietario y notas</li>
+      <li>Buscador por placa (consulta al backend en tiempo real)</li>
+      <li>Crear vehículo: buscador de cliente, placa, marca (lista predefinida + campo "Otro"), modelo, año, color y notas</li>
+      <li>Editar vehículo con los mismos campos</li>
+      <li>Eliminar con confirmación (elimina en cascada sus órdenes e ítems)</li>
+      <li>Selección múltiple + exportar a Excel</li>
+    </ul>
+  </div>
+  <div class="feature-block">
+    <div class="block-title">📜 Historial de órdenes por vehículo</div>
+    <ul>
+      <li>Botón de historial por cada fila de la tabla</li>
+      <li>Abre un modal con todas las órdenes del vehículo</li>
+      <li>Columnas: fecha de ingreso, estado, mecánico, diagnóstico (truncado), total estimado</li>
+      <li>Scroll interno si hay muchas órdenes</li>
+    </ul>
+  </div>
+
+  <!-- MECÁNICOS -->
+  <h2>🔧 Mecánicos — <code>/mecanicos</code></h2>
+  <div class="feature-block">
+    <div class="block-title">Gestión del equipo de trabajo</div>
+    <ul>
+      <li>Tabla con nombre, teléfono, especialidad y estado (activo / inactivo)</li>
+      <li>Contador "X activos de Y" en el encabezado</li>
+      <li>Crear mecánico: nombre, teléfono y especialidad</li>
+      <li>Editar mecánico</li>
+      <li>Toggle activo/inactivo — los inactivos no aparecen en el selector de nueva orden</li>
+      <li>Eliminar con diálogo de confirmación</li>
+      <li>Selección múltiple + exportar a Excel</li>
+    </ul>
+  </div>
+
+  <!-- WHATSAPP -->
+  <h2>📱 Notificaciones WhatsApp — Automáticas</h2>
+  <p>Los mensajes se envían automáticamente al teléfono del cliente desde el WhatsApp del taller. No requiere ninguna acción manual.</p>
+
+  <div class="wa-message">
+    <div class="wa-trigger">🟢 Al crear una orden</div>
+    👋 Hola <strong>Juan</strong>! Tu vehículo <strong>ABC123</strong> ingresó al taller. Te notificaremos cuando haya novedades.
+  </div>
+  <div class="wa-message">
+    <div class="wa-trigger">🔵 Al pasar a "En progreso"</div>
+    🔧 Hola <strong>Juan</strong>! Ya estamos trabajando en tu <strong>ABC123</strong> (Toyota Corolla). Mecánico: Carlos.
+  </div>
+  <div class="wa-message">
+    <div class="wa-trigger">✅ Al pasar a "Completada"</div>
+    ✅ ¡Listo <strong>Juan</strong>! Tu <strong>ABC123</strong> está listo para retirar. Total estimado: <strong>$85.000</strong>.
+  </div>
+  <div class="wa-message">
+    <div class="wa-trigger">❌ Al pasar a "Cancelada"</div>
+    ❌ Hola <strong>Juan</strong>. La orden de tu <strong>ABC123</strong> fue cancelada. Contactanos para más información.
+  </div>
+
+  <div class="feature-block" style="margin-top:14px">
+    <div class="block-title">Auto-reconexión de WhatsApp</div>
+    <ul>
+      <li>El sistema verifica cada 5 minutos si WhatsApp sigue conectado</li>
+      <li>Si detecta estado <code>close</code> → intenta reconectar automáticamente usando la sesión guardada</li>
+      <li>Espera hasta 15 segundos verificando si vuelve a estado <code>open</code></li>
+      <li>Si no logra reconectar → loguea advertencia para intervención manual vía QR</li>
+      <li class="note">Los mensajes solo se envían si el cliente tiene teléfono cargado en su ficha</li>
+    </ul>
+  </div>
+
+  <!-- EXPORTACIONES -->
+  <h2>📤 Exportaciones Excel</h2>
+  <p>Disponible en todas las listas. La exportación ocurre en el navegador (sin carga en el servidor).</p>
+  <div class="feature-block">
+    <div class="block-title">Comportamiento unificado en todas las listas</div>
+    <ul>
+      <li>Botón siempre visible: <strong>"Exportar todos (N)"</strong> cuando no hay selección activa</li>
+      <li>Cambia a <strong>"Exportar X seleccionados"</strong> cuando hay filas marcadas</li>
+      <li>Checkboxes por fila con soporte para "seleccionar todo" e indeterminate</li>
+      <li>Filas seleccionadas se resaltan en azul claro</li>
+    </ul>
+  </div>
+  <div style="margin-top:8px">
+    <span class="export-chip">📋 Órdenes</span>
+    <span class="export-chip">👥 Clientes</span>
+    <span class="export-chip">🚗 Vehículos</span>
+    <span class="export-chip">🔧 Mecánicos</span>
+  </div>
+
+  <!-- SIDEBAR Y NAVEGACIÓN -->
+  <h2>🧭 Navegación y UX General</h2>
+  <div class="two-col">
+    <div class="feature-block">
+      <div class="block-title">Sidebar (desktop)</div>
+      <ul>
+        <li>Logo MecaFlow</li>
+        <li>Nombre del taller logueado (<em>"Taller: [nombre]"</em>)</li>
+        <li>Links: Dashboard, Órdenes, Clientes, Vehículos, Mecánicos</li>
+        <li>Botón de logout</li>
+      </ul>
+    </div>
+    <div class="feature-block">
+      <div class="block-title">Bottom Navigation (mobile)</div>
+      <ul>
+        <li>5 íconos: Dashboard, Órdenes, Clientes, Vehículos, Mecánicos</li>
+        <li>Fijo en la parte inferior de la pantalla</li>
+        <li>Ícono activo resaltado</li>
+      </ul>
+    </div>
+  </div>
+  <div class="feature-block">
+    <div class="block-title">Detalles de UX</div>
+    <ul>
+      <li>Notificaciones toast (éxito / error) en todas las operaciones</li>
+      <li>Diálogos de confirmación antes de eliminar cualquier registro</li>
+      <li>Estados de carga ("Guardando...", "Eliminando...") en todos los botones de acción</li>
+      <li>Tablas con scroll horizontal en pantallas chicas</li>
+      <li>Formularios con validación visual: campos requeridos marcados, botón Guardar deshabilitado si falta información</li>
+    </ul>
+  </div>
+
+</body>
+</html>

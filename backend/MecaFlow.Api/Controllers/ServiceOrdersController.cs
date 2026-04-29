@@ -14,6 +14,7 @@ namespace MecaFlow.Api.Controllers;
 public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp) : ControllerBase
 {
     private Guid TenantId => Guid.Parse(User.FindFirst("tenantId")!.Value);
+    private string CurrentUser => User.Identity?.Name ?? "unknown";
 
     private static ServiceOrderDto MapToDto(ServiceOrder o) => new(
         o.Id, o.VehicleId, o.Vehicle.LicensePlate,
@@ -22,7 +23,8 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         o.Status, o.DiagnosisNotes, o.MileageIn, o.AssignedMechanic,
         o.InternalNotes, o.EstimatedDeliveryAt,
         o.TotalEstimate, o.TotalFinal, o.CreatedAt, o.CompletedAt,
-        o.Items.Select(i => new ServiceItemDto(i.Id, i.Description, i.Type, i.Quantity, i.UnitPrice, i.Total)).ToList()
+        o.Items.Select(i => new ServiceItemDto(i.Id, i.Description, i.Type, i.Quantity, i.UnitPrice, i.Total)).ToList(),
+        o.QuoteStatus, o.LastActivityAt
     );
 
     private IQueryable<ServiceOrder> BaseQuery() =>
@@ -37,7 +39,9 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         [FromQuery] string? plate,
         [FromQuery] string? customer,
         [FromQuery] string? mechanic,
-        [FromQuery] Guid? vehicleId)
+        [FromQuery] Guid? vehicleId,
+        [FromQuery] DateOnly? dateFrom,
+        [FromQuery] DateOnly? dateTo)
     {
         var query = BaseQuery().AsQueryable();
         if (status.HasValue) query = query.Where(o => o.Status == status);
@@ -45,6 +49,16 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         if (!string.IsNullOrWhiteSpace(customer)) query = query.Where(o => o.Vehicle.Customer.Name.Contains(customer));
         if (!string.IsNullOrWhiteSpace(mechanic)) query = query.Where(o => o.AssignedMechanic != null && o.AssignedMechanic.Contains(mechanic));
         if (vehicleId.HasValue) query = query.Where(o => o.VehicleId == vehicleId);
+        if (dateFrom.HasValue)
+        {
+            var from = dateFrom.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(o => o.CreatedAt >= from);
+        }
+        if (dateTo.HasValue)
+        {
+            var to = dateTo.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(o => o.CreatedAt < to);
+        }
         return await query.OrderByDescending(o => o.CreatedAt).Select(o => MapToDto(o)).ToListAsync();
     }
 
@@ -54,6 +68,21 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         var order = await BaseQuery().FirstOrDefaultAsync(o => o.Id == id);
         if (order is null) return NotFound();
         return MapToDto(order);
+    }
+
+    [HttpGet("{id:guid}/logs")]
+    public async Task<ActionResult<IEnumerable<ServiceOrderLogDto>>> GetLogs(Guid id)
+    {
+        var exists = await BaseQuery().AnyAsync(o => o.Id == id);
+        if (!exists) return NotFound();
+
+        var logs = await db.ServiceOrderLogs
+            .Where(l => l.ServiceOrderId == id)
+            .OrderByDescending(l => l.ChangedAt)
+            .Select(l => new ServiceOrderLogDto(l.Id, l.Event, l.OldValue, l.NewValue, l.ChangedBy, l.ChangedAt))
+            .ToListAsync();
+
+        return Ok(logs);
     }
 
     [HttpPost]
@@ -78,6 +107,13 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         order.TotalEstimate = order.Items.Sum(i => i.Quantity * i.UnitPrice);
 
         db.ServiceOrders.Add(order);
+        db.ServiceOrderLogs.Add(new ServiceOrderLog
+        {
+            ServiceOrderId = order.Id,
+            Event = "Created",
+            NewValue = "Open",
+            ChangedBy = CurrentUser
+        });
         await db.SaveChangesAsync();
 
         var created = await BaseQuery().FirstAsync(o => o.Id == order.Id);
@@ -99,6 +135,8 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         order.EstimatedDeliveryAt = dto.EstimatedDeliveryAt;
         order.TotalEstimate = dto.TotalEstimate;
         order.TotalFinal = dto.TotalFinal;
+        order.LastActivityAt = DateTime.UtcNow;
+        order.ReminderSentAt = null;
 
         if (dto.Status == ServiceOrderStatus.Completed && order.CompletedAt is null)
             order.CompletedAt = DateTime.UtcNow;
@@ -110,6 +148,13 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
             Type = i.Type, Quantity = i.Quantity, UnitPrice = i.UnitPrice
         }).ToList();
 
+        db.ServiceOrderLogs.Add(new ServiceOrderLog
+        {
+            ServiceOrderId = order.Id,
+            Event = "Updated",
+            ChangedBy = CurrentUser
+        });
+
         await db.SaveChangesAsync();
         return MapToDto(await BaseQuery().FirstAsync(o => o.Id == id));
     }
@@ -120,12 +165,53 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         var order = await BaseQuery().FirstOrDefaultAsync(o => o.Id == id);
         if (order is null) return NotFound();
 
+        var oldStatus = order.Status.ToString();
         order.Status = status;
+        order.LastActivityAt = DateTime.UtcNow;
+        order.ReminderSentAt = null;
+
         if (status == ServiceOrderStatus.Completed && order.CompletedAt is null)
             order.CompletedAt = DateTime.UtcNow;
 
+        db.ServiceOrderLogs.Add(new ServiceOrderLog
+        {
+            ServiceOrderId = order.Id,
+            Event = "StatusChanged",
+            OldValue = oldStatus,
+            NewValue = status.ToString(),
+            ChangedBy = CurrentUser
+        });
+
         await db.SaveChangesAsync();
         _ = whatsApp.SendStatusChangedAsync(order, status);
+        return MapToDto(order);
+    }
+
+    [HttpPatch("{id:guid}/quote")]
+    public async Task<ActionResult<ServiceOrderDto>> UpdateQuote(Guid id, [FromBody] QuoteStatus quoteStatus)
+    {
+        var order = await BaseQuery().FirstOrDefaultAsync(o => o.Id == id);
+        if (order is null) return NotFound();
+
+        var oldQuote = order.QuoteStatus.ToString();
+        order.QuoteStatus = quoteStatus;
+        order.LastActivityAt = DateTime.UtcNow;
+        order.ReminderSentAt = null;
+
+        db.ServiceOrderLogs.Add(new ServiceOrderLog
+        {
+            ServiceOrderId = order.Id,
+            Event = "QuoteStatusChanged",
+            OldValue = oldQuote,
+            NewValue = quoteStatus.ToString(),
+            ChangedBy = CurrentUser
+        });
+
+        await db.SaveChangesAsync();
+
+        if (quoteStatus == QuoteStatus.Pending)
+            _ = whatsApp.SendQuoteAsync(order);
+
         return MapToDto(order);
     }
 }
