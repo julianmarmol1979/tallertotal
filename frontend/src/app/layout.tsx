@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 const notoSans = Noto_Sans({ variable: "--font-noto-sans", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "MecaFlow",
+  title: "TallerTotal",
   description: "Sistema de gestión para talleres mecánicos",
 };
 

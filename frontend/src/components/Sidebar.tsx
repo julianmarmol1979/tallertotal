@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LayoutDashboard, Users, Car, ClipboardList, Wrench, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MecaFlowLogo } from "@/components/MecaFlowLogo";
+import { TallerTotalLogo } from "@/components/TallerTotalLogo";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -21,7 +21,7 @@ export function Sidebar() {
   const [tenantName, setTenantName] = useState("");
 
   useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)mecaflow_tenant=([^;]*)/);
+    const match = document.cookie.match(/(?:^|;\s*)tallertotal_tenant=([^;]*)/);
     if (match) setTenantName(decodeURIComponent(match[1]));
   }, []);
 
@@ -33,7 +33,7 @@ export function Sidebar() {
   return (
     <aside className="w-60 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
       <div className="p-5 border-b border-slate-800">
-        <MecaFlowLogo dark />
+        <TallerTotalLogo dark />
         {tenantName && (
           <p className="mt-1.5 text-xs text-slate-500 truncate">
             <span className="text-slate-400 font-medium">Taller:</span> {tenantName}

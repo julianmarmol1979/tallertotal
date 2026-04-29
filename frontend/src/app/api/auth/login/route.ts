@@ -31,11 +31,11 @@ export async function POST(request: Request) {
     path: "/",
   };
 
-  response.cookies.set("mecaflow_token", data.token, { ...cookieOpts, httpOnly: true });
+  response.cookies.set("tallertotal_token", data.token, { ...cookieOpts, httpOnly: true });
 
   // Readable cookie so the client-side sidebar can show the tenant name
   if (data.tenantName) {
-    response.cookies.set("mecaflow_tenant", data.tenantName, { ...cookieOpts, httpOnly: false });
+    response.cookies.set("tallertotal_tenant", data.tenantName, { ...cookieOpts, httpOnly: false });
   }
 
   return response;

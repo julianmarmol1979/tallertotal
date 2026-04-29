@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { serviceOrdersApi } from "@/lib/api";
 import type { ServiceOrder } from "@/types";
-import { Wrench, Printer } from "lucide-react";
+import Image from "next/image";
+import { Printer } from "lucide-react";
 
 const itemTypeLabel = (type: string) => (type === "Labor" ? "Mano de obra" : "Repuesto");
 
@@ -70,10 +71,8 @@ export default function ImprimirOrdenPage() {
         {/* ── Header ── */}
         <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-blue-600">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 rounded-xl p-2.5">
-              <Wrench className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-slate-900">MecaFlow</span>
+            <Image src="/logo.png" alt="TallerTotal" width={40} height={40} className="rounded-xl" />
+            <span className="text-2xl font-bold text-slate-900">TallerTotal</span>
           </div>
           <div className="text-right">
             <p className="text-base font-bold text-gray-700 uppercase tracking-wide">Orden de Servicio</p>
@@ -202,7 +201,7 @@ export default function ImprimirOrdenPage() {
         </div>
 
         <div className="mt-8 text-center text-[10px] text-gray-300">
-          Generado por MecaFlow · Sistema de gestión para talleres mecánicos
+          Generado por TallerTotal · Sistema de gestión para talleres mecánicos
         </div>
       </div>
     </>

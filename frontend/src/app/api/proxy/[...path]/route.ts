@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:5123";
 
 async function forward(req: Request, params: { path: string[] }, method: string) {
-  const token = (await cookies()).get("mecaflow_token")?.value;
+  const token = (await cookies()).get("tallertotal_token")?.value;
   const path = params.path.join("/");
   const search = new URL(req.url).search;
   const url = `${BACKEND}/api/${path}${search}`;

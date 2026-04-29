@@ -1,1 +1,1 @@
-export const SESSION_COOKIE = "mecaflow_session";
+export const SESSION_COOKIE = "tallertotal_session";

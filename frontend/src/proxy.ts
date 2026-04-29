@@ -12,7 +12,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get("mecaflow_token")?.value;
+  const token = request.cookies.get("tallertotal_token")?.value;
   const secret = process.env.JWT_SECRET;
 
   if (!token || !secret) {
@@ -21,8 +21,8 @@ export async function proxy(request: NextRequest) {
 
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
-      issuer: "mecaflow",
-      audience: "mecaflow",
+      issuer: "tallertotal",
+      audience: "tallertotal",
     });
 
     // Protect /admin routes — SuperAdmin only

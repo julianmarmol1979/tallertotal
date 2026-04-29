@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
-import { MecaFlowLogo } from "@/components/MecaFlowLogo";
+import { TallerTotalLogo } from "@/components/TallerTotalLogo";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -48,19 +49,29 @@ export default function LoginPage() {
   return (
     <div className="min-h-full flex">
       {/* Left panel - branding */}
-      <div className="hidden lg:flex lg:w-3/5 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex-col justify-between p-12">
-        <MecaFlowLogo dark />
-        <div className="space-y-6">
+      <div className="hidden lg:flex lg:w-3/5 relative flex-col justify-between p-12 overflow-hidden">
+        <Image
+          src="/background.png"
+          alt=""
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="absolute inset-0 bg-slate-900/70" />
+        <div className="relative z-10">
+          <TallerTotalLogo dark />
+        </div>
+        <div className="relative z-10 space-y-6">
           <h1 className="text-white text-5xl font-bold leading-tight">
             Tu taller,<br />
             sin el caos<br />
             del papel.
           </h1>
-          <p className="text-slate-400 text-lg max-w-sm leading-relaxed">
+          <p className="text-slate-300 text-lg max-w-sm leading-relaxed">
             Gestioná órdenes de servicio, clientes y vehículos desde un solo lugar. Rápido, simple y desde el celular.
           </p>
         </div>
-        <div className="flex gap-8">
+        <div className="relative z-10 flex gap-8">
           {[{ value: "100%", label: "Digital" }, { value: "0", label: "Papeles" }, { value: "∞", label: "Órdenes" }].map((s) => (
             <div key={s.label}>
               <div className="text-white text-2xl font-bold">{s.value}</div>
@@ -74,7 +85,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-sm space-y-8">
           <div className="flex lg:hidden mb-8">
-            <MecaFlowLogo />
+            <TallerTotalLogo />
           </div>
 
           <div>
@@ -121,7 +132,7 @@ export default function LoginPage() {
             {isAdmin ? "← Volver al login de taller" : "Acceso administrador"}
           </button>
 
-          <p className="text-center text-xs text-gray-400">MecaFlow © {new Date().getFullYear()}</p>
+          <p className="text-center text-xs text-gray-400">TallerTotal © {new Date().getFullYear()}</p>
         </div>
       </div>
     </div>
