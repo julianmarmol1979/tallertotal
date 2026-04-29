@@ -25,7 +25,7 @@ public record CreateServiceOrderDto(
     int? MileageIn,
     [MaxLength(100)] string? AssignedMechanic,
     [MaxLength(1000)] string? InternalNotes,
-    DateTime? EstimatedDeliveryAt,
+    DateOnly? EstimatedDeliveryAt,
     List<CreateServiceItemDto> Items
 );
 
@@ -35,7 +35,7 @@ public record UpdateServiceOrderDto(
     int? MileageIn,
     string? AssignedMechanic,
     [MaxLength(1000)] string? InternalNotes,
-    DateTime? EstimatedDeliveryAt,
+    DateOnly? EstimatedDeliveryAt,
     decimal TotalEstimate,
     decimal TotalFinal,
     List<CreateServiceItemDto> Items
@@ -53,7 +53,7 @@ public record ServiceOrderDto(
     int? MileageIn,
     string? AssignedMechanic,
     string? InternalNotes,
-    DateTime? EstimatedDeliveryAt,
+    DateOnly? EstimatedDeliveryAt,
     decimal TotalEstimate,
     decimal TotalFinal,
     DateTime CreatedAt,

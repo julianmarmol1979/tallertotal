@@ -9,7 +9,7 @@ public class ServiceOrder
     public int? MileageIn { get; set; }
     public string? AssignedMechanic { get; set; }
     public string? InternalNotes { get; set; }
-    public DateTime? EstimatedDeliveryAt { get; set; }
+    public DateOnly? EstimatedDeliveryAt { get; set; }
     public decimal TotalEstimate { get; set; }
     public decimal TotalFinal { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
