@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MecaFlow.Api.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260429123347_AddQuoteStatusAndLogs")]
+    [Migration("20260429163422_AddQuoteStatusAndLogs")]
     partial class AddQuoteStatusAndLogs
     {
         /// <inheritdoc />
@@ -149,8 +149,20 @@ namespace MecaFlow.Api.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<DateTime>("LastActivityAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int?>("MileageIn")
                         .HasColumnType("integer");
+
+                    b.Property<string>("QuoteStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("None");
+
+                    b.Property<DateTime?>("ReminderSentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -172,6 +184,43 @@ namespace MecaFlow.Api.Data.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("ServiceOrders");
+                });
+
+            modelBuilder.Entity("MecaFlow.Api.Models.ServiceOrderLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChangedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Event")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ServiceOrderId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceOrderId");
+
+                    b.ToTable("ServiceOrderLogs");
                 });
 
             modelBuilder.Entity("MecaFlow.Api.Models.Tenant", b =>
@@ -316,6 +365,17 @@ namespace MecaFlow.Api.Data.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("MecaFlow.Api.Models.ServiceOrderLog", b =>
+                {
+                    b.HasOne("MecaFlow.Api.Models.ServiceOrder", "ServiceOrder")
+                        .WithMany("Logs")
+                        .HasForeignKey("ServiceOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceOrder");
+                });
+
             modelBuilder.Entity("MecaFlow.Api.Models.User", b =>
                 {
                     b.HasOne("MecaFlow.Api.Models.Tenant", "Tenant")
@@ -346,6 +406,8 @@ namespace MecaFlow.Api.Data.Migrations
             modelBuilder.Entity("MecaFlow.Api.Models.ServiceOrder", b =>
                 {
                     b.Navigation("Items");
+
+                    b.Navigation("Logs");
                 });
 
             modelBuilder.Entity("MecaFlow.Api.Models.Tenant", b =>
