@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,13 +49,8 @@ export default function LoginPage() {
     <div className="min-h-full flex">
       {/* Left panel - branding */}
       <div className="hidden lg:flex lg:w-3/5 relative flex-col justify-between p-12 overflow-hidden">
-        <Image
-          src="/background.png"
-          alt=""
-          fill
-          className="object-cover"
-          priority
-        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/background.png" alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-slate-900/70" />
         <div className="relative z-10">
           <TallerTotalLogo dark />
