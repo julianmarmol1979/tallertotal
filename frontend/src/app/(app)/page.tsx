@@ -100,10 +100,10 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={<ClipboardList className="h-5 w-5 text-blue-600" />} label="Total" value={counts.total} />
-        <KpiCard icon={<AlertCircle className="h-5 w-5 text-sky-500" />} label="Abiertas" value={counts.open} />
-        <KpiCard icon={<Clock className="h-5 w-5 text-amber-500" />} label="En progreso" value={counts.inProgress} />
-        <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-500" />} label="Completadas" value={counts.completed} />
+        <KpiCard icon={<ClipboardList className="h-5 w-5 text-blue-600" />} label="Total" value={counts.total} borderClass="border-l-4 border-l-blue-500" iconBgClass="bg-blue-50" />
+        <KpiCard icon={<AlertCircle className="h-5 w-5 text-sky-500" />} label="Abiertas" value={counts.open} borderClass="border-l-4 border-l-sky-400" iconBgClass="bg-sky-50" />
+        <KpiCard icon={<Clock className="h-5 w-5 text-amber-500" />} label="En progreso" value={counts.inProgress} borderClass="border-l-4 border-l-amber-400" iconBgClass="bg-amber-50" />
+        <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-500" />} label="Completadas" value={counts.completed} borderClass="border-l-4 border-l-green-500" iconBgClass="bg-green-50" />
       </div>
 
       <Card>
@@ -253,16 +253,18 @@ export default function DashboardPage() {
   );
 }
 
-function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function KpiCard({ icon, label, value, borderClass, iconBgClass }: {
+  icon: React.ReactNode; label: string; value: number; borderClass: string; iconBgClass: string;
+}) {
   return (
-    <Card>
+    <Card className={borderClass}>
       <CardContent className="pt-5 pb-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
             <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
           </div>
-          <div className="p-2 rounded-lg bg-gray-50">{icon}</div>
+          <div className={`p-2.5 rounded-xl ${iconBgClass}`}>{icon}</div>
         </div>
       </CardContent>
     </Card>

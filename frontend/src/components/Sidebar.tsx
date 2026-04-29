@@ -31,12 +31,12 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-60 bg-white border-r border-gray-200 flex flex-col shrink-0">
-      <div className="p-5 border-b border-gray-200">
-        <MecaFlowLogo />
+    <aside className="w-60 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+      <div className="p-5 border-b border-slate-800">
+        <MecaFlowLogo dark />
         {tenantName && (
-          <p className="mt-1.5 text-xs text-gray-400 truncate">
-            <span className="text-gray-500 font-medium">Taller:</span> {tenantName}
+          <p className="mt-1.5 text-xs text-slate-500 truncate">
+            <span className="text-slate-400 font-medium">Taller:</span> {tenantName}
           </p>
         )}
       </div>
@@ -48,8 +48,8 @@ export function Sidebar() {
             className={cn(
               "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
               pathname === href
-                ? "bg-blue-50 text-blue-700"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-slate-400 hover:bg-slate-800 hover:text-white"
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
@@ -57,10 +57,10 @@ export function Sidebar() {
           </Link>
         ))}
       </nav>
-      <div className="p-3 border-t border-gray-200">
+      <div className="p-3 border-t border-slate-800">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition-colors"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Cerrar sesión

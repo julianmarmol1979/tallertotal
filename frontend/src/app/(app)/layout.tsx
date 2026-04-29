@@ -3,7 +3,7 @@ import { BottomNav } from "@/components/BottomNav";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="h-full flex bg-gray-50">
+    <div className="h-full flex bg-gradient-to-br from-slate-50 via-blue-50/25 to-slate-50">
       <div className="hidden md:flex">
         <Sidebar />
       </div>
