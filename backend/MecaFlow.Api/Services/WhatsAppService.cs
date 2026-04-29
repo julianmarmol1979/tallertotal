@@ -204,7 +204,7 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
 
     private HttpClient BuildClient()
     {
-        var http = new HttpClient();
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
         http.DefaultRequestHeaders.Add("apikey", ApiKey);
         return http;
     }
