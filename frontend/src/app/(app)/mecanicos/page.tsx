@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { mechanicsApi } from "@/lib/api";
 import type { Mechanic, CreateMechanicDto } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Wrench, ToggleLeft, ToggleRight, FileSpreadsheet } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 import { exportMechanicsToExcel } from "@/lib/export-data";
 
@@ -37,6 +38,8 @@ export default function MecanicosPage() {
   const [deleteTarget, setDeleteTarget] = useState<Mechanic | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,6 +54,7 @@ export default function MecanicosPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [pageSize]);
 
   const openCreate = () => {
     setEditing(null);
@@ -139,6 +143,11 @@ export default function MecanicosPage() {
     exportMechanicsToExcel(toExport, `mecanicos-${Date.now()}.xlsx`);
     toast.success(`${toExport.length} mecánico${toExport.length !== 1 ? "s" : ""} exportado${toExport.length !== 1 ? "s" : ""}`);
   };
+
+  const paginated = useMemo(
+    () => mechanics.slice((page - 1) * pageSize, page * pageSize),
+    [mechanics, page, pageSize]
+  );
 
   const activeCount = mechanics.filter((m) => m.isActive).length;
 
@@ -241,7 +250,7 @@ export default function MecanicosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mechanics.map((m) => (
+                  {paginated.map((m) => (
                     <TableRow key={m.id} className={`hover:bg-gray-50 ${selected.has(m.id) ? "bg-blue-50/60" : ""} ${!m.isActive ? "opacity-50" : ""}`}>
                       <TableCell>
                         <input
@@ -294,6 +303,13 @@ export default function MecanicosPage() {
               </Table>
             </div>
           )}
+          <Pagination
+            total={mechanics.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { vehiclesApi, customersApi, serviceOrdersApi } from "@/lib/api";
 import type { Vehicle, Customer, CreateVehicleDto, ServiceOrder } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Car, Search, FileSpreadsheet, ClipboardList } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 import { exportVehiclesToExcel } from "@/lib/export-data";
 
@@ -90,6 +91,8 @@ export default function VehiculosPage() {
   const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [historyTarget, setHistoryTarget] = useState<Vehicle | null>(null);
   const [historyOrders, setHistoryOrders] = useState<ServiceOrder[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -107,6 +110,7 @@ export default function VehiculosPage() {
   }, [plateSearch]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [plateSearch, pageSize]);
   useEffect(() => {
     customersApi.getAll(customerSearch || undefined).then(setCustomers).catch(() => {});
   }, [customerSearch]);
@@ -198,6 +202,11 @@ export default function VehiculosPage() {
       return next;
     });
   };
+
+  const paginated = useMemo(
+    () => vehicles.slice((page - 1) * pageSize, page * pageSize),
+    [vehicles, page, pageSize]
+  );
 
   const openHistory = async (v: Vehicle) => {
     setHistoryTarget(v);
@@ -421,7 +430,7 @@ export default function VehiculosPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vehicles.map((v) => (
+                  {paginated.map((v) => (
                     <TableRow key={v.id} className={`hover:bg-gray-50 ${selected.has(v.id) ? "bg-blue-50/60" : ""}`}>
                       <TableCell>
                         <input
@@ -470,6 +479,13 @@ export default function VehiculosPage() {
               </Table>
             </div>
           )}
+          <Pagination
+            total={vehicles.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
       {/* Order history */}

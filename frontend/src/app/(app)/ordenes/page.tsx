@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Plus, FileSpreadsheet, Download, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -30,7 +31,7 @@ const STATUS_LABELS: Record<ServiceOrderStatus, string> = {
   Cancelled: "Cancelada",
 };
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 
 type SortCol = "licensePlate" | "customerName" | "assignedMechanic" | "status" | "totalEstimate" | "createdAt" | "estimatedDeliveryAt";
 
@@ -93,6 +94,7 @@ export default function OrdenesPage() {
   const [sortCol, setSortCol] = useState<SortCol | null>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
@@ -114,7 +116,7 @@ export default function OrdenesPage() {
   useEffect(() => { mechanicsApi.getAll().then(setMechanics).catch(() => {}); }, []);
 
   // Reset page when filters change
-  useEffect(() => { setPage(1); }, [activeTab, search, mechanicFilter, sortCol, sortDir]);
+  useEffect(() => { setPage(1); }, [activeTab, search, mechanicFilter, sortCol, sortDir, pageSize]);
 
   const handleStatusChange = async (id: string, status: ServiceOrderStatus) => {
     try {
@@ -154,8 +156,7 @@ export default function OrdenesPage() {
     [filtered, sortCol, sortDir]
   );
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   // ── Selection helpers ──────────────────────────────────────────────────────
   const allFilteredIds = filtered.map((o) => o.id);
@@ -352,22 +353,13 @@ export default function OrdenesPage() {
                 </Table>
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-1 text-sm text-gray-500">
-                  <span>
-                    {sorted.length} resultado{sorted.length !== 1 ? "s" : ""} — página {page} de {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-                      Anterior
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
-                      Siguiente
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination
+                total={sorted.length}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
             </>
           )}
         </CardContent>

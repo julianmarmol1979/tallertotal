@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { customersApi } from "@/lib/api";
 import type { Customer, CreateCustomerDto } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Users, FileSpreadsheet } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 import { exportCustomersToExcel } from "@/lib/export-data";
 
@@ -28,6 +29,8 @@ export default function ClientesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,6 +45,7 @@ export default function ClientesPage() {
   }, [search]);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [search, pageSize]);
 
   const openCreate = () => { setEditing(null); setForm(emptyForm()); setOpen(true); };
   const openEdit = (c: Customer) => {
@@ -107,6 +111,11 @@ export default function ClientesPage() {
       return next;
     });
   };
+
+  const paginated = useMemo(
+    () => customers.slice((page - 1) * pageSize, page * pageSize),
+    [customers, page, pageSize]
+  );
 
   // ── Export ─────────────────────────────────────────────────────────────────
   const handleExport = () => {
@@ -207,7 +216,7 @@ export default function ClientesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customers.map((c) => (
+                  {paginated.map((c) => (
                     <TableRow key={c.id} className={`hover:bg-gray-50 ${selected.has(c.id) ? "bg-blue-50/60" : ""}`}>
                       <TableCell>
                         <input
@@ -246,6 +255,13 @@ export default function ClientesPage() {
               </Table>
             </div>
           )}
+          <Pagination
+            total={customers.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 

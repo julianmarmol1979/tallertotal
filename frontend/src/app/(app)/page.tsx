@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { serviceOrdersApi } from "@/lib/api";
 import type { ServiceOrder, ServiceOrderStatus } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ClipboardList, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 
 const STATUS_TABS: { value: ServiceOrderStatus | "all"; label: string }[] = [
@@ -28,6 +29,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ServiceOrderStatus | "all">("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const loadAll = useCallback(async () => {
     try {
@@ -54,6 +57,7 @@ export default function DashboardPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [activeTab, search, pageSize]);
 
   const handleStatusChange = async (id: string, status: ServiceOrderStatus) => {
     try {
@@ -75,6 +79,11 @@ export default function DashboardPage() {
       (o.assignedMechanic ?? "").toLowerCase().includes(q)
     );
   });
+
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * pageSize, page * pageSize),
+    [filtered, page, pageSize]
+  );
 
   const counts = {
     open: allOrders.filter((o) => o.status === "Open").length,
@@ -134,7 +143,7 @@ export default function DashboardPage() {
             <>
               {/* Mobile: cards */}
               <div className="md:hidden space-y-3">
-                {filtered.map((order) => (
+                {paginated.map((order) => (
                   <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
@@ -192,7 +201,7 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((order) => (
+                    {paginated.map((order) => (
                       <TableRow key={order.id} className="hover:bg-gray-50">
                         <TableCell className="font-mono font-semibold text-sm">{order.licensePlate}</TableCell>
                         <TableCell className="text-sm">{order.vehicleDescription}</TableCell>
@@ -231,6 +240,13 @@ export default function DashboardPage() {
               </div>
             </>
           )}
+          <Pagination
+            total={filtered.length}
+            page={page}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
     </div>
