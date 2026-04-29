@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["dotnet-sdk_9"]
+
+[phases.install]
+cmds = ["dotnet restore ../TallerTotal.Api/TallerTotal.Api.csproj"]
+
+[phases.build]
+cmds = ["dotnet publish ../TallerTotal.Api/TallerTotal.Api.csproj -c Release -o /app"]
+
+[start]
+cmd = "dotnet /app/TallerTotal.Api.dll"
