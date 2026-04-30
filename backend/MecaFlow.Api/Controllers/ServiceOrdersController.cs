@@ -126,9 +126,9 @@ public class ServiceOrdersController(
         _ = whatsApp.SendOrderCreatedAsync(created);
         _ = email.SendOrderCreatedAsync(created);
 
-        // Push notification to assigned mechanic
+        // Push notification to assigned mechanic (await so db is still alive for the query)
         if (!string.IsNullOrWhiteSpace(created.AssignedMechanic))
-            _ = NotifyMechanicAsync(created, created.AssignedMechanic);
+            await NotifyMechanicAsync(created, created.AssignedMechanic);
 
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToDto(created));
     }
@@ -177,10 +177,10 @@ public class ServiceOrdersController(
 
         var updated = await BaseQuery().FirstAsync(o => o.Id == id);
 
-        // Push mechanic if newly assigned
+        // Push mechanic if newly assigned (await so db is still alive for the query)
         var newMechanic = updated.AssignedMechanic;
         if (!string.IsNullOrWhiteSpace(newMechanic) && newMechanic != prevMechanic)
-            _ = NotifyMechanicAsync(updated, newMechanic);
+            await NotifyMechanicAsync(updated, newMechanic);
 
         return MapToDto(updated);
     }
@@ -212,7 +212,7 @@ public class ServiceOrdersController(
 
         _ = whatsApp.SendStatusChangedAsync(order, status);
         _ = email.SendStatusChangedAsync(order, status);
-        _ = NotifyMechanicStatusAsync(order, status);
+        await NotifyMechanicStatusAsync(order, status);
 
         return MapToDto(order);
     }
@@ -250,6 +250,7 @@ public class ServiceOrdersController(
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    // db query runs within the request scope; only the HTTP push is fire-and-forget
     private async Task NotifyMechanicAsync(ServiceOrder order, string mechanicName)
     {
         var mechanic = await db.Mechanics
@@ -259,7 +260,7 @@ public class ServiceOrdersController(
                 m.PushSubscriptionJson != null);
 
         if (mechanic is not null)
-            await push.SendOrderAssignedAsync(mechanic, order);
+            _ = push.SendOrderAssignedAsync(mechanic, order);
     }
 
     private async Task NotifyMechanicStatusAsync(ServiceOrder order, ServiceOrderStatus newStatus)
@@ -273,6 +274,6 @@ public class ServiceOrdersController(
                 m.PushSubscriptionJson != null);
 
         if (mechanic is not null)
-            await push.SendStatusChangedAsync(mechanic, order, newStatus);
+            _ = push.SendStatusChangedAsync(mechanic, order, newStatus);
     }
 }
