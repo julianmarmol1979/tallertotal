@@ -490,18 +490,31 @@ function PushCard() {
               )}
             </div>
 
-            {!status.isConfigured ? (
-              <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-700 space-y-1">
-                <p className="font-semibold">Variables faltantes en Railway:</p>
-                <p className="font-mono">Push__VapidPublicKey</p>
-                <p className="font-mono">Push__VapidPrivateKey</p>
-                <p className="text-amber-600 mt-1">Usar __ (doble guión bajo) como separador.</p>
+            {/* Diagnostic: what the backend actually sees */}
+            {(status.foundInEnv?.length ?? 0) > 0 || (status.foundInConfig?.length ?? 0) > 0 ? (
+              <div className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 space-y-1">
+                <p className="font-semibold text-gray-600">Variables detectadas por el backend:</p>
+                {(status.foundInConfig ?? []).map((k) => (
+                  <p key={k} className="font-mono text-gray-500">config[{k}] ✓</p>
+                ))}
+                {(status.foundInEnv ?? []).map((k) => (
+                  <p key={k} className="font-mono text-gray-500">env[{k}] ✓</p>
+                ))}
               </div>
-            ) : (
+            ) : !status.isConfigured ? (
+              <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-700 space-y-1">
+                <p className="font-semibold">El backend no encuentra ninguna variable VAPID.</p>
+                <p>Agregá en Railway (nombre simple, sin puntos ni guiones dobles):</p>
+                <p className="font-mono">VAPID_PUBLIC_KEY</p>
+                <p className="font-mono">VAPID_PRIVATE_KEY</p>
+              </div>
+            ) : null}
+
+            {status.isConfigured && (
               <div className="text-xs bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-blue-700 space-y-1">
-                <p className="font-semibold">Verificar también en Vercel:</p>
-                <p>La variable <span className="font-mono">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> debe ser exactamente igual a <span className="font-mono">Push__VapidPublicKey</span> de Railway.</p>
-                <p>Si no coinciden, las suscripciones de los mecánicos son inválidas — hay que reactivarlas desde el link del mecánico.</p>
+                <p className="font-semibold">También verificar en Vercel:</p>
+                <p><span className="font-mono">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> debe coincidir con la public key de Railway.</p>
+                <p className="text-blue-600">Si cambiaste la clave, reactivar notificaciones desde el link del mecánico.</p>
               </div>
             )}
           </>

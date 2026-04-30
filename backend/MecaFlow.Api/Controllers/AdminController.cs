@@ -50,10 +50,29 @@ public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfig
             ?? config["VAPID_PRIVATE_KEY"]
             ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey")
             ?? Environment.GetEnvironmentVariable("VAPID_PRIVATE_KEY");
+
+        // Collect which config keys are actually populated (names only, no values)
+        var foundKeys = new List<string>();
+        var checkKeys = new[] {
+            "Push:VapidPublicKey", "Push:VapidPrivateKey",
+            "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY",
+        };
+        foreach (var k in checkKeys)
+            if (!string.IsNullOrWhiteSpace(config[k])) foundKeys.Add(k);
+
+        var envKeys = Environment.GetEnvironmentVariables().Keys
+            .Cast<string>()
+            .Where(k => k.Contains("VAPID", StringComparison.OrdinalIgnoreCase)
+                     || k.Contains("Push", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(k => k)
+            .ToList();
+
         return Ok(new
         {
             isConfigured = !string.IsNullOrWhiteSpace(publicKey) && !string.IsNullOrWhiteSpace(privateKey),
             publicKeyPreview = string.IsNullOrWhiteSpace(publicKey) ? null : publicKey[..Math.Min(12, publicKey.Length)] + "…",
+            foundInConfig = foundKeys,
+            foundInEnv = envKeys,
         });
     }
 
