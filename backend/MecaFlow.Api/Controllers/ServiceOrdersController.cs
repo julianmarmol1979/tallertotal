@@ -11,7 +11,11 @@ namespace TallerTotal.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp) : ControllerBase
+public class ServiceOrdersController(
+    AppDbContext db,
+    IWhatsAppService whatsApp,
+    IEmailService email,
+    IPushService push) : ControllerBase
 {
     private Guid TenantId => Guid.Parse(User.FindFirst("tenantId")!.Value);
     private string CurrentUser => User.Identity?.Name ?? "unknown";
@@ -24,7 +28,7 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         o.InternalNotes, o.EstimatedDeliveryAt,
         o.TotalEstimate, o.TotalFinal, o.CreatedAt, o.CompletedAt,
         o.Items.Select(i => new ServiceItemDto(i.Id, i.Description, i.Type, i.Quantity, i.UnitPrice, i.Total)).ToList(),
-        o.QuoteStatus, o.LastActivityAt
+        o.QuoteStatus, o.LastActivityAt, o.PortalToken
     );
 
     private IQueryable<ServiceOrder> BaseQuery() =>
@@ -117,7 +121,15 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         await db.SaveChangesAsync();
 
         var created = await BaseQuery().FirstAsync(o => o.Id == order.Id);
+
+        // WhatsApp + email to customer (fire-and-forget)
         _ = whatsApp.SendOrderCreatedAsync(created);
+        _ = email.SendOrderCreatedAsync(created);
+
+        // Push notification to assigned mechanic
+        if (!string.IsNullOrWhiteSpace(created.AssignedMechanic))
+            _ = NotifyMechanicAsync(created, created.AssignedMechanic);
+
         return CreatedAtAction(nameof(GetById), new { id = order.Id }, MapToDto(created));
     }
 
@@ -126,6 +138,8 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
     {
         var order = await BaseQuery().FirstOrDefaultAsync(o => o.Id == id);
         if (order is null) return NotFound();
+
+        var prevMechanic = order.AssignedMechanic;
 
         order.Status = dto.Status;
         order.DiagnosisNotes = dto.DiagnosisNotes;
@@ -156,7 +170,15 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         });
 
         await db.SaveChangesAsync();
-        return MapToDto(await BaseQuery().FirstAsync(o => o.Id == id));
+
+        var updated = await BaseQuery().FirstAsync(o => o.Id == id);
+
+        // Push mechanic if newly assigned
+        var newMechanic = updated.AssignedMechanic;
+        if (!string.IsNullOrWhiteSpace(newMechanic) && newMechanic != prevMechanic)
+            _ = NotifyMechanicAsync(updated, newMechanic);
+
+        return MapToDto(updated);
     }
 
     [HttpPatch("{id:guid}/status")]
@@ -183,7 +205,10 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         });
 
         await db.SaveChangesAsync();
+
         _ = whatsApp.SendStatusChangedAsync(order, status);
+        _ = email.SendStatusChangedAsync(order, status);
+
         return MapToDto(order);
     }
 
@@ -210,8 +235,25 @@ public class ServiceOrdersController(AppDbContext db, IWhatsAppService whatsApp)
         await db.SaveChangesAsync();
 
         if (quoteStatus == QuoteStatus.Pending)
+        {
             _ = whatsApp.SendQuoteAsync(order);
+            _ = email.SendQuoteAsync(order);
+        }
 
         return MapToDto(order);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private async Task NotifyMechanicAsync(ServiceOrder order, string mechanicName)
+    {
+        var mechanic = await db.Mechanics
+            .FirstOrDefaultAsync(m =>
+                m.TenantId == order.Vehicle.Customer.TenantId &&
+                m.Name == mechanicName &&
+                m.PushSubscriptionJson != null);
+
+        if (mechanic is not null)
+            await push.SendOrderAssignedAsync(mechanic, order);
     }
 }

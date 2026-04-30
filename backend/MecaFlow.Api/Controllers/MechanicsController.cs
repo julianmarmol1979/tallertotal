@@ -89,4 +89,30 @@ public class MechanicsController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
         return NoContent();
     }
+
+    /// <summary>
+    /// Stores a Web Push subscription for a mechanic.
+    /// Called by the mechanic's browser after granting notification permission.
+    /// No auth required — the mechanic ID in the URL is the implicit "key".
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPatch("{id:guid}/push-subscribe")]
+    public async Task<IActionResult> PushSubscribe(Guid id, [FromBody] PushSubscribeDto dto)
+    {
+        var mechanic = await db.Mechanics.FirstOrDefaultAsync(m => m.Id == id);
+        if (mechanic is null) return NotFound();
+
+        mechanic.PushSubscriptionJson = dto.SubscriptionJson;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{id:guid}/public")]
+    public async Task<ActionResult<MechanicPublicDto>> GetPublic(Guid id)
+    {
+        var m = await db.Mechanics.FirstOrDefaultAsync(x => x.Id == id);
+        if (m is null) return NotFound();
+        return new MechanicPublicDto(m.Id, m.Name, m.Specialty, m.PushSubscriptionJson != null);
+    }
 }

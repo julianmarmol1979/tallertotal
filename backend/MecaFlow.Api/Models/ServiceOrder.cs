@@ -18,6 +18,8 @@ public class ServiceOrder
     public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReminderSentAt { get; set; }
 
+    public Guid PortalToken { get; set; } = Guid.NewGuid();
+
     public Vehicle Vehicle { get; set; } = null!;
     public ICollection<ServiceItem> Items { get; set; } = [];
     public ICollection<ServiceOrderLog> Logs { get; set; } = [];

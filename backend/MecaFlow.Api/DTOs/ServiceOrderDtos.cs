@@ -60,7 +60,25 @@ public record ServiceOrderDto(
     DateTime? CompletedAt,
     List<ServiceItemDto> Items,
     QuoteStatus QuoteStatus,
-    DateTime LastActivityAt
+    DateTime LastActivityAt,
+    Guid PortalToken
+);
+
+// Public portal DTO — no sensitive internal data
+public record PortalOrderDto(
+    Guid Id,
+    string LicensePlate,
+    string VehicleDescription,
+    string CustomerName,
+    ServiceOrderStatus Status,
+    QuoteStatus QuoteStatus,
+    string? DiagnosisNotes,
+    DateOnly? EstimatedDeliveryAt,
+    decimal TotalEstimate,
+    decimal TotalFinal,
+    DateTime CreatedAt,
+    DateTime? CompletedAt,
+    List<ServiceItemDto> Items
 );
 
 public record ServiceOrderLogDto(

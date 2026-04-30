@@ -52,6 +52,24 @@ export interface ServiceOrder {
   quoteStatus: QuoteStatus;
   lastActivityAt: string;
   items: ServiceItem[];
+  portalToken: string;
+}
+
+// Lean read-only view exposed to the customer via /portal/[token]
+export interface PortalOrder {
+  id: string;
+  licensePlate: string;
+  vehicleDescription: string;
+  customerName: string;
+  status: ServiceOrderStatus;
+  quoteStatus: QuoteStatus;
+  diagnosisNotes?: string;
+  estimatedDeliveryAt?: string;
+  totalEstimate: number;
+  totalFinal: number;
+  createdAt: string;
+  completedAt?: string;
+  items: ServiceItem[];
 }
 
 export interface ServiceOrderLog {

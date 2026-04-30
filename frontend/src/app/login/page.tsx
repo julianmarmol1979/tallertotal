@@ -126,7 +126,12 @@ export default function LoginPage() {
             {isAdmin ? "← Volver al login de taller" : "Acceso administrador"}
           </button>
 
-          <p className="text-center text-xs text-gray-400">TallerTotal © {new Date().getFullYear()}</p>
+          <p className="text-center text-xs text-gray-400">
+            TallerTotal © {new Date().getFullYear()}
+            {process.env.NEXT_PUBLIC_APP_VERSION && (
+              <span className="ml-1.5 text-gray-300">· {process.env.NEXT_PUBLIC_APP_VERSION}</span>
+            )}
+          </p>
         </div>
       </div>
     </div>

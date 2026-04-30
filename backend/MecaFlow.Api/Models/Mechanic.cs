@@ -8,6 +8,7 @@ public class Mechanic
     public string? Phone { get; set; }
     public string? Specialty { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? PushSubscriptionJson { get; set; }
 
     public Tenant Tenant { get; set; } = null!;
 }

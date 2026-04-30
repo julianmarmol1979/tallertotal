@@ -13,7 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Plus, FileSpreadsheet, Download, ChevronUp, ChevronDown, ChevronsUpDown,
-  Printer, FileText, CheckCircle, XCircle, History,
+  Printer, FileText, CheckCircle, XCircle, History, Link,
 } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
@@ -467,6 +467,17 @@ export default function OrdenesPage() {
                               onClick={() => window.open(`/imprimir/${order.id}`, "_blank")}
                               className="text-gray-400 hover:text-blue-600">
                               <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                            {/* Copiar link del portal */}
+                            <Button variant="ghost" size="icon-sm"
+                              title="Copiar link del portal para el cliente"
+                              onClick={() => {
+                                const url = `${window.location.origin}/portal/${order.portalToken}`;
+                                navigator.clipboard.writeText(url);
+                                toast.success("Link del portal copiado");
+                              }}
+                              className="text-gray-400 hover:text-emerald-600">
+                              <Link className="h-3.5 w-3.5" />
                             </Button>
                             {/* Historial */}
                             <Button variant="ghost" size="icon-sm"

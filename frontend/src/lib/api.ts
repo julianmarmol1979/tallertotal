@@ -11,6 +11,7 @@ import type {
   CreateServiceOrderDto,
   Mechanic,
   CreateMechanicDto,
+  PortalOrder,
 } from "@/types";
 
 // All calls go through the Next.js proxy which adds the JWT from httpOnly cookie
@@ -113,6 +114,42 @@ export const serviceOrdersApi = {
 // Dashboard
 export const dashboardApi = {
   getMetrics: () => request<DashboardMetrics>("/dashboard/metrics"),
+};
+
+// Customer portal — calls the backend directly (no auth cookie needed)
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
+
+export const portalApi = {
+  getOrder: async (token: string): Promise<PortalOrder> => {
+    const url = BACKEND_URL
+      ? `${BACKEND_URL}/api/portal/${token}`
+      : `/api/portal-proxy/${token}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  },
+};
+
+// Mechanic push subscription — calls backend directly (no auth needed)
+export const mechanicApi = {
+  getPublic: async (id: string) => {
+    const url = BACKEND_URL
+      ? `${BACKEND_URL}/api/mechanics/${id}/public`
+      : `/api/portal-proxy/mechanics/${id}/public`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json() as Promise<{ id: string; name: string; specialty?: string; hasPushSubscription: boolean }>;
+  },
+  pushSubscribe: async (id: string, subscriptionJson: string | null) => {
+    const url = BACKEND_URL
+      ? `${BACKEND_URL}/api/mechanics/${id}/push-subscribe`
+      : `/api/portal-proxy/mechanics/${id}/push-subscribe`;
+    await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscriptionJson }),
+    });
+  },
 };
 
 // Admin API — calls go to proxy which forwards to backend with SuperAdmin JWT

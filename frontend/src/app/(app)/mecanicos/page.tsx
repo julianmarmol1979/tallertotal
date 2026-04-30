@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Wrench, ToggleLeft, ToggleRight, FileSpreadsheet } from "lucide-react";
+import { Plus, Pencil, Trash2, Wrench, ToggleLeft, ToggleRight, FileSpreadsheet, Bell } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
 import { exportMechanicsToExcel } from "@/lib/export-data";
@@ -284,6 +284,18 @@ export default function MecanicosPage() {
                             {m.isActive
                               ? <ToggleRight className="h-3.5 w-3.5" />
                               : <ToggleLeft className="h-3.5 w-3.5" />}
+                          </Button>
+                          <Button
+                            variant="ghost" size="icon-sm"
+                            title="Copiar link de notificaciones"
+                            onClick={() => {
+                              const url = `${window.location.origin}/mecanico/${m.id}`;
+                              navigator.clipboard.writeText(url);
+                              toast.success("Link copiado — enviáselo al mecánico");
+                            }}
+                            className="text-gray-400 hover:text-violet-600"
+                          >
+                            <Bell className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant="ghost" size="icon-sm" onClick={() => openEdit(m)}>
                             <Pencil className="h-3.5 w-3.5" />

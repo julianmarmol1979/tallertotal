@@ -40,6 +40,13 @@ builder.Services.AddSingleton<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHostedService<WhatsAppHealthService>();
 builder.Services.AddHostedService<WhatsAppReminderService>();
 
+// Email (Resend REST API via HttpClient) — no-op if Resend:ApiKey is not configured
+builder.Services.AddHttpClient("resend");
+builder.Services.AddScoped<IEmailService, ResendEmailService>();
+
+// Web Push for mechanic notifications
+builder.Services.AddScoped<IPushService, PushService>();
+
 var allowedOrigins = (builder.Configuration["AllowedOrigins"] ?? "http://localhost:3000")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 

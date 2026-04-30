@@ -15,3 +15,12 @@ public record MechanicDto(
     string? Specialty,
     bool IsActive
 );
+
+public record MechanicPublicDto(
+    Guid Id,
+    string Name,
+    string? Specialty,
+    bool HasPushSubscription
+);
+
+public record PushSubscribeDto(string? SubscriptionJson);
