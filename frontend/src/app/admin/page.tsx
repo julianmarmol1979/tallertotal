@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -320,10 +320,53 @@ function WhatsAppCard() {
   const [testing, setTesting] = useState(false);
   const [qr, setQr] = useState<WhatsAppQrResponse | null>(null);
   const [loadingQr, setLoadingQr] = useState(false);
+  const [qrCountdown, setQrCountdown] = useState(0);
+  const qrTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopQrTimer = () => {
+    if (qrTimerRef.current) { clearInterval(qrTimerRef.current); qrTimerRef.current = null; }
+  };
+
+  const fetchQr = useCallback(async () => {
+    setLoadingQr(true);
+    try {
+      const result = await adminApi.getWhatsAppQr();
+      setQr(result);
+      if (result.isAlreadyConnected) {
+        toast.success("¡Ya está conectado!");
+        stopQrTimer();
+        setQrCountdown(0);
+        await checkStatus();
+      } else if (result.qrBase64) {
+        // Start 18s countdown then auto-refresh
+        setQrCountdown(18);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al obtener QR");
+    } finally {
+      setLoadingQr(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (qrCountdown <= 0) return;
+    const t = setTimeout(() => {
+      setQrCountdown((c) => {
+        if (c <= 1) { fetchQr(); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [qrCountdown, fetchQr]);
+
+  useEffect(() => () => stopQrTimer(), []);
 
   const checkStatus = async () => {
     setLoading(true);
     setQr(null);
+    stopQrTimer();
+    setQrCountdown(0);
     try {
       setStatus(await adminApi.getWhatsAppStatus());
     } catch (err) {
@@ -333,21 +376,7 @@ function WhatsAppCard() {
     }
   };
 
-  const handleShowQr = async () => {
-    setLoadingQr(true);
-    try {
-      const result = await adminApi.getWhatsAppQr();
-      setQr(result);
-      if (result.isAlreadyConnected) {
-        toast.success("¡Ya está conectado!");
-        await checkStatus();
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al obtener QR");
-    } finally {
-      setLoadingQr(false);
-    }
-  };
+  const handleShowQr = () => fetchQr();
 
   const sendTest = async () => {
     if (!testPhone.trim()) return;
@@ -425,23 +454,32 @@ function WhatsAppCard() {
                 </Button>
 
                 {qr?.qrBase64 && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-xs text-gray-500">
-                      Abrí WhatsApp → ⋮ Dispositivos vinculados → Vincular dispositivo → escaneá este QR:
+                      Abrí WhatsApp → ⋮ → <strong>Dispositivos vinculados</strong> → <strong>Vincular dispositivo</strong> → escaneá:
                     </p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={qr.qrBase64}
                       alt="QR WhatsApp"
-                      className="w-48 h-48 border rounded-lg"
+                      className="w-64 h-64 border-2 border-gray-200 rounded-xl"
                     />
-                    <p className="text-xs text-gray-400">
-                      El QR expira en ~60 seg. Si expira, hacé clic en "Mostrar QR" de nuevo.
-                    </p>
-                    <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading} className="gap-2">
-                      <RefreshCw className="h-3.5 w-3.5" />
-                      Verificar si conectó
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      {qrCountdown > 0 ? (
+                        <p className="text-xs text-amber-600 font-medium">
+                          Se actualiza en {qrCountdown}s...
+                        </p>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={handleShowQr} disabled={loadingQr} className="gap-2">
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          Nuevo QR
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading} className="gap-2 text-green-700 border-green-300 hover:bg-green-50">
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Verificar si conectó
+                      </Button>
+                    </div>
                   </div>
                 )}
 

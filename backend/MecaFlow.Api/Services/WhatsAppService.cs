@@ -118,14 +118,16 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
 
             var connectJson = JsonNode.Parse(connectBody);
 
-            // Evolution v2 returns { "base64": "data:image/png;base64,..." }
-            // Evolution v1 returns { "code": "data:image/png;base64,..." }
-            var qr = connectJson?["base64"]?.GetValue<string>()
-                  ?? connectJson?["qrcode"]?.GetValue<string>()
-                  ?? connectJson?["code"]?.GetValue<string>();
+            // Evolution v2: { "base64": "data:image/png;base64,..." }
+            // Evolution v1: { "qrcode": { "base64": "data:image/png;base64,..." } }
+            // Some builds: { "code": "..." }
+            string? qr = connectJson?["base64"]?.GetValue<string>()
+                      ?? connectJson?["qrcode"]?["base64"]?.GetValue<string>()
+                      ?? connectJson?["qrcode"]?.GetValue<string>()
+                      ?? connectJson?["code"]?.GetValue<string>();
 
             if (string.IsNullOrEmpty(qr))
-                return new WhatsAppQrResult(true, false, null, $"No QR in response: {connectBody}");
+                return new WhatsAppQrResult(true, false, null, $"No QR in response: {connectBody[..Math.Min(300, connectBody.Length)]}");
 
             // Ensure it's a data URL
             if (!qr.StartsWith("data:"))
