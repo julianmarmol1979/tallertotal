@@ -41,9 +41,13 @@ public class PushService(IConfiguration config, ILogger<PushService> logger) : I
     {
         if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson)) return;
 
-        var publicKey  = config["Push:VapidPublicKey"];
-        var privateKey = config["Push:VapidPrivateKey"];
-        var subject    = config["Push:VapidSubject"] ?? "mailto:admin@tallertotal.app";
+        var publicKey  = config["Push:VapidPublicKey"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey");
+        var privateKey = config["Push:VapidPrivateKey"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey");
+        var subject    = config["Push:VapidSubject"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidSubject")
+            ?? "mailto:admin@tallertotal.app";
 
         if (string.IsNullOrWhiteSpace(publicKey) || string.IsNullOrWhiteSpace(privateKey))
         {
