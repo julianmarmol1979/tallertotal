@@ -41,12 +41,19 @@ public class PushService(IConfiguration config, ILogger<PushService> logger) : I
     {
         if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson)) return;
 
+        // Try multiple naming conventions Railway may use
         var publicKey  = config["Push:VapidPublicKey"]
-            ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey");
+            ?? config["VAPID_PUBLIC_KEY"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey")
+            ?? Environment.GetEnvironmentVariable("VAPID_PUBLIC_KEY");
         var privateKey = config["Push:VapidPrivateKey"]
-            ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey");
+            ?? config["VAPID_PRIVATE_KEY"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey")
+            ?? Environment.GetEnvironmentVariable("VAPID_PRIVATE_KEY");
         var subject    = config["Push:VapidSubject"]
+            ?? config["VAPID_SUBJECT"]
             ?? Environment.GetEnvironmentVariable("Push__VapidSubject")
+            ?? Environment.GetEnvironmentVariable("VAPID_SUBJECT")
             ?? "mailto:admin@tallertotal.app";
 
         if (string.IsNullOrWhiteSpace(publicKey) || string.IsNullOrWhiteSpace(privateKey))

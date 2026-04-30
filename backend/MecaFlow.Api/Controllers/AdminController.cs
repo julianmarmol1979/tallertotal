@@ -43,9 +43,13 @@ public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfig
     public IActionResult PushStatus()
     {
         var publicKey  = config["Push:VapidPublicKey"]
-            ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey");
+            ?? config["VAPID_PUBLIC_KEY"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey")
+            ?? Environment.GetEnvironmentVariable("VAPID_PUBLIC_KEY");
         var privateKey = config["Push:VapidPrivateKey"]
-            ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey");
+            ?? config["VAPID_PRIVATE_KEY"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey")
+            ?? Environment.GetEnvironmentVariable("VAPID_PRIVATE_KEY");
         return Ok(new
         {
             isConfigured = !string.IsNullOrWhiteSpace(publicKey) && !string.IsNullOrWhiteSpace(privateKey),
