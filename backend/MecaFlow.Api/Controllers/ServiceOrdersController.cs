@@ -155,16 +155,16 @@ public class ServiceOrdersController(
         if (dto.Status == ServiceOrderStatus.Completed && order.CompletedAt is null)
             order.CompletedAt = DateTime.UtcNow;
 
-        db.ServiceItems.RemoveRange(order.Items);
-        await db.SaveChangesAsync(); // flush deletes before adding new items
-        order.Items = dto.Items.Select(i => new ServiceItem
+        // Delete existing items directly (avoids EF change-tracker concurrency issues)
+        await db.ServiceItems.Where(i => i.ServiceOrderId == order.Id).ExecuteDeleteAsync();
+        db.ServiceItems.AddRange(dto.Items.Select(i => new ServiceItem
         {
             ServiceOrderId = order.Id,
             Description = i.Description ?? "",
             Type = i.Type,
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice
-        }).ToList();
+        }));
 
         db.ServiceOrderLogs.Add(new ServiceOrderLog
         {
