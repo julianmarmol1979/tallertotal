@@ -113,6 +113,18 @@ export interface CreateServiceItemDto {
   unitPrice: number;
 }
 
+export interface UpdateServiceOrderDto {
+  status: ServiceOrderStatus;
+  diagnosisNotes?: string;
+  mileageIn?: number;
+  assignedMechanic?: string;
+  internalNotes?: string;
+  estimatedDeliveryAt?: string;
+  totalEstimate: number;
+  totalFinal: number;
+  items: CreateServiceItemDto[];
+}
+
 export interface CreateServiceOrderDto {
   vehicleId: string;
   diagnosisNotes?: string;

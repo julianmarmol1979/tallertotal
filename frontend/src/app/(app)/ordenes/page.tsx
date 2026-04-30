@@ -4,16 +4,17 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { serviceOrdersApi, mechanicsApi } from "@/lib/api";
 import { exportOrdersToExcel } from "@/lib/export-orders";
-import type { ServiceOrder, ServiceOrderStatus, ServiceOrderLog, QuoteStatus, Mechanic } from "@/types";
+import type { ServiceOrder, ServiceOrderStatus, ServiceOrderLog, QuoteStatus, Mechanic, UpdateServiceOrderDto, CreateServiceItemDto } from "@/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import {
   Plus, FileSpreadsheet, Download, ChevronUp, ChevronDown, ChevronsUpDown,
-  Printer, FileText, CheckCircle, XCircle, History, Link2,
+  Printer, FileText, CheckCircle, XCircle, History, Link2, Pencil, Trash2,
 } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
@@ -102,6 +103,228 @@ function formatLogEvent(event: string) {
   return map[event] ?? event;
 }
 
+// ── Edit dialog ────────────────────────────────────────────────────────────────
+
+function EditOrderDialog({ order, mechanics, onSaved, onClose }: {
+  order: ServiceOrder;
+  mechanics: Mechanic[];
+  onSaved: () => void;
+  onClose: () => void;
+}) {
+  const [status, setStatus] = useState<ServiceOrderStatus>(order.status);
+  const [mechanic, setMechanic] = useState(order.assignedMechanic ?? "");
+  const [diagnosis, setDiagnosis] = useState(order.diagnosisNotes ?? "");
+  const [mileage, setMileage] = useState(order.mileageIn?.toString() ?? "");
+  const [internalNotes, setInternalNotes] = useState(order.internalNotes ?? "");
+  const [delivery, setDelivery] = useState(order.estimatedDeliveryAt ?? "");
+  const [totalFinal, setTotalFinal] = useState(order.totalFinal.toString());
+  const [items, setItems] = useState<CreateServiceItemDto[]>(
+    order.items.length > 0
+      ? order.items.map((i) => ({ description: i.description, type: i.type, quantity: i.quantity, unitPrice: i.unitPrice }))
+      : [{ description: "", type: "Labor", quantity: 1, unitPrice: 0 }]
+  );
+  const [saving, setSaving] = useState(false);
+
+  const totalEstimate = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+
+  const addItem = () => setItems((prev) => [...prev, { description: "", type: "Labor", quantity: 1, unitPrice: 0 }]);
+  const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
+  const updateItem = (idx: number, field: keyof CreateServiceItemDto, value: string | number) => {
+    setItems((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const dto: UpdateServiceOrderDto = {
+        status,
+        diagnosisNotes: diagnosis || undefined,
+        mileageIn: mileage ? parseInt(mileage) : undefined,
+        assignedMechanic: mechanic || undefined,
+        internalNotes: internalNotes || undefined,
+        estimatedDeliveryAt: delivery || undefined,
+        totalEstimate,
+        totalFinal: parseFloat(totalFinal) || 0,
+        items: items.filter((i) => i.description.trim()),
+      };
+      await serviceOrdersApi.update(order.id, dto);
+      toast.success("Orden actualizada");
+      onSaved();
+      onClose();
+    } catch {
+      toast.error("Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Editar orden — {order.licensePlate}</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-2 gap-4 py-2">
+          {/* Estado */}
+          <div className="space-y-1.5">
+            <Label>Estado</Label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ServiceOrderStatus)}
+              className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+            >
+              {(["Open","InProgress","Completed","Cancelled"] as ServiceOrderStatus[]).map((s) => (
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Mecánico */}
+          <div className="space-y-1.5">
+            <Label>Mecánico</Label>
+            <select
+              value={mechanic}
+              onChange={(e) => setMechanic(e.target.value)}
+              className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+            >
+              <option value="">Sin asignar</option>
+              {mechanics.filter((m) => m.isActive).map((m) => (
+                <option key={m.id} value={m.name}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Km ingreso */}
+          <div className="space-y-1.5">
+            <Label>Km de ingreso</Label>
+            <Input
+              type="number"
+              value={mileage}
+              onChange={(e) => setMileage(e.target.value)}
+              placeholder="85000"
+            />
+          </div>
+
+          {/* Fecha estimada entrega */}
+          <div className="space-y-1.5">
+            <Label>Entrega estimada</Label>
+            <Input
+              type="date"
+              value={delivery}
+              onChange={(e) => setDelivery(e.target.value)}
+            />
+          </div>
+
+          {/* Diagnóstico */}
+          <div className="col-span-2 space-y-1.5">
+            <Label>Diagnóstico</Label>
+            <textarea
+              value={diagnosis}
+              onChange={(e) => setDiagnosis(e.target.value)}
+              rows={2}
+              placeholder="Descripción del problema..."
+              className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 resize-none"
+            />
+          </div>
+
+          {/* Notas internas */}
+          <div className="col-span-2 space-y-1.5">
+            <Label>Notas internas</Label>
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              rows={2}
+              placeholder="Notas solo visibles para el taller..."
+              className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Items */}
+        <div className="space-y-2 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <Label>Ítems y mano de obra</Label>
+            <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
+              <Plus className="h-3.5 w-3.5" /> Agregar ítem
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {items.map((item, idx) => (
+              <div key={idx} className="grid grid-cols-[1fr_90px_80px_90px_32px] gap-2 items-center">
+                <Input
+                  value={item.description}
+                  onChange={(e) => updateItem(idx, "description", e.target.value)}
+                  placeholder="Descripción"
+                  className="text-sm"
+                />
+                <select
+                  value={item.type}
+                  onChange={(e) => updateItem(idx, "type", e.target.value)}
+                  className="h-9 rounded-lg border border-input bg-transparent px-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring/50"
+                >
+                  <option value="Labor">Mano obra</option>
+                  <option value="Part">Repuesto</option>
+                </select>
+                <Input
+                  type="number"
+                  value={item.quantity}
+                  onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)}
+                  placeholder="Cant."
+                  className="text-sm"
+                  min={0}
+                />
+                <Input
+                  type="number"
+                  value={item.unitPrice}
+                  onChange={(e) => updateItem(idx, "unitPrice", parseFloat(e.target.value) || 0)}
+                  placeholder="Precio"
+                  className="text-sm"
+                  min={0}
+                />
+                <Button
+                  variant="ghost" size="icon-sm"
+                  onClick={() => removeItem(idx)}
+                  className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                  disabled={items.length === 1}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between pt-1 text-sm">
+            <span className="text-gray-500">Total estimado</span>
+            <span className="font-semibold text-gray-900">
+              ${totalEstimate.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+          {(status === "Completed" || order.totalFinal > 0) && (
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm text-gray-500 shrink-0">Total final cobrado</span>
+              <Input
+                type="number"
+                value={totalFinal}
+                onChange={(e) => setTotalFinal(e.target.value)}
+                placeholder="0"
+                className="max-w-[140px] text-sm"
+                min={0}
+              />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="pt-2">
+          <DialogClose render={<Button variant="outline" />}>Cancelar</DialogClose>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar cambios"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function OrdenesPage() {
@@ -118,6 +341,9 @@ export default function OrdenesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Edit dialog
+  const [editOrder, setEditOrder] = useState<ServiceOrder | null>(null);
 
   // Logs dialog
   const [logsOrderId, setLogsOrderId] = useState<string | null>(null);
@@ -461,6 +687,13 @@ export default function OrdenesPage() {
                                 </Button>
                               </>
                             )}
+                            {/* Editar */}
+                            <Button variant="ghost" size="icon-sm"
+                              title="Editar orden"
+                              onClick={() => setEditOrder(order)}
+                              className="text-gray-400 hover:text-blue-600">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
                             {/* Imprimir */}
                             <Button variant="ghost" size="icon-sm"
                               title="Imprimir orden"
@@ -512,6 +745,16 @@ export default function OrdenesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Edit dialog ───────────────────────────────────────────────────────── */}
+      {editOrder && (
+        <EditOrderDialog
+          order={editOrder}
+          mechanics={mechanics}
+          onSaved={load}
+          onClose={() => setEditOrder(null)}
+        />
+      )}
 
       {/* ── Logs dialog ───────────────────────────────────────────────────────── */}
       <Dialog open={!!logsOrderId} onOpenChange={(open) => { if (!open) { setLogsOrderId(null); setLogs([]); } }}>

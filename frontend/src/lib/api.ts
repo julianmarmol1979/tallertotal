@@ -9,6 +9,7 @@ import type {
   CreateCustomerDto,
   CreateVehicleDto,
   CreateServiceOrderDto,
+  UpdateServiceOrderDto,
   Mechanic,
   CreateMechanicDto,
   PortalOrder,
@@ -97,6 +98,8 @@ export const serviceOrdersApi = {
   getById: (id: string) => request<ServiceOrder>(`/serviceorders/${id}`),
   create: (dto: CreateServiceOrderDto) =>
     request<ServiceOrder>("/serviceorders", { method: "POST", body: JSON.stringify(dto) }),
+  update: (id: string, dto: UpdateServiceOrderDto) =>
+    request<ServiceOrder>(`/serviceorders/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
   updateStatus: (id: string, status: ServiceOrderStatus) =>
     request<ServiceOrder>(`/serviceorders/${id}/status`, {
       method: "PATCH",
