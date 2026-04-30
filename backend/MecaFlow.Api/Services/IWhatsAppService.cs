@@ -37,11 +37,3 @@ public record WhatsAppQrResult(
     string? QrBase64,
     string? Error
 );
-
-public record WhatsAppStatus(
-    bool IsConfigured,
-    string? BaseUrl,
-    string? Instance,
-    string? ConnectionState,
-    string? Error
-);
