@@ -24,8 +24,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Loader2, Trash2, Power, Wifi, WifiOff, Send, QrCode, RefreshCw } from "lucide-react";
-import { adminApi, type TenantResponse, type UserResponse, type WhatsAppStatusResponse, type WhatsAppQrResponse, type PushStatusResponse } from "@/lib/api";
+import {
+  Plus, ChevronDown, ChevronRight, Loader2, Trash2, Power,
+  Wifi, WifiOff, Send, QrCode, RefreshCw, Building2, Plug,
+} from "lucide-react";
+import {
+  adminApi,
+  type TenantResponse,
+  type UserResponse,
+  type WhatsAppStatusResponse,
+  type WhatsAppQrResponse,
+  type PushStatusResponse,
+} from "@/lib/api";
 
 // ── Tenant row ────────────────────────────────────────────────────────────────
 
@@ -38,8 +48,7 @@ function TenantRow({ tenant, onToggle }: { tenant: TenantResponse; onToggle: () 
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true);
     try {
-      const data = await adminApi.getUsers(tenant.id);
-      setUsers(data);
+      setUsers(await adminApi.getUsers(tenant.id));
     } catch {
       toast.error("No se pudieron cargar los usuarios");
     } finally {
@@ -76,18 +85,12 @@ function TenantRow({ tenant, onToggle }: { tenant: TenantResponse; onToggle: () 
     }
   };
 
-  const handleUserCreated = (user: UserResponse) => {
-    setUsers((prev) => [...prev, user]);
-  };
-
   return (
     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-      {/* Header row */}
       <div className="flex items-center gap-3 px-4 py-3">
         <button
           onClick={handleExpand}
           className="text-gray-400 hover:text-gray-600 transition-colors"
-          aria-label={expanded ? "Colapsar" : "Expandir"}
         >
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </button>
@@ -107,25 +110,16 @@ function TenantRow({ tenant, onToggle }: { tenant: TenantResponse; onToggle: () 
 
         <div className="flex items-center gap-2 shrink-0">
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleToggle}
-            disabled={toggling}
+            variant="ghost" size="sm" onClick={handleToggle} disabled={toggling}
             className={tenant.isActive ? "text-gray-500 hover:text-red-600" : "text-gray-500 hover:text-green-600"}
           >
-            {toggling ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Power className="h-4 w-4" />
-            )}
+            {toggling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
             <span className="hidden sm:inline ml-1.5">{tenant.isActive ? "Desactivar" : "Activar"}</span>
           </Button>
-
-          <CreateUserDialog tenantId={tenant.id} onCreated={handleUserCreated} />
+          <CreateUserDialog tenantId={tenant.id} onCreated={(u) => setUsers((p) => [...p, u])} />
         </div>
       </div>
 
-      {/* Users list */}
       {expanded && (
         <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
           {loadingUsers ? (
@@ -146,7 +140,6 @@ function TenantRow({ tenant, onToggle }: { tenant: TenantResponse; onToggle: () 
                   <button
                     onClick={() => handleDeleteUser(user.id)}
                     className="text-gray-300 hover:text-red-500 transition-colors shrink-0"
-                    aria-label="Eliminar usuario"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -162,13 +155,7 @@ function TenantRow({ tenant, onToggle }: { tenant: TenantResponse; onToggle: () 
 
 // ── Create user dialog ────────────────────────────────────────────────────────
 
-function CreateUserDialog({
-  tenantId,
-  onCreated,
-}: {
-  tenantId: string;
-  onCreated: (user: UserResponse) => void;
-}) {
+function CreateUserDialog({ tenantId, onCreated }: { tenantId: string; onCreated: (u: UserResponse) => void }) {
   const [open, setOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -195,45 +182,22 @@ function CreateUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-      <DialogTrigger render={
-        <Button variant="outline" size="sm">
-          <Plus className="h-3.5 w-3.5 mr-1" />
-          Usuario
-        </Button>
-      } />
+      <DialogTrigger render={<Button variant="outline" size="sm"><Plus className="h-3.5 w-3.5 mr-1" />Usuario</Button>} />
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Nuevo usuario</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Nuevo usuario</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <Label htmlFor="new-username" required>Usuario</Label>
-            <Input
-              id="new-username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="juan"
-              required
-              autoComplete="off"
-            />
+            <Label htmlFor="nu-username" required>Usuario</Label>
+            <Input id="nu-username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="juan" required autoComplete="off" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="new-password" required>Contraseña</Label>
-            <PasswordInput
-              id="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              autoComplete="new-password"
-            />
+            <Label htmlFor="nu-password" required>Contraseña</Label>
+            <PasswordInput id="nu-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required autoComplete="new-password" />
           </div>
           <div className="space-y-1.5">
             <Label>Rol</Label>
             <Select value={role} onValueChange={(v) => v && setRole(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Owner">Owner</SelectItem>
                 <SelectItem value="Mechanic">Mechanic</SelectItem>
@@ -254,7 +218,7 @@ function CreateUserDialog({
 
 // ── Create tenant dialog ──────────────────────────────────────────────────────
 
-function CreateTenantDialog({ onCreated }: { onCreated: (tenant: TenantResponse) => void }) {
+function CreateTenantDialog({ onCreated }: { onCreated: (t: TenantResponse) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -277,27 +241,13 @@ function CreateTenantDialog({ onCreated }: { onCreated: (tenant: TenantResponse)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo taller
-        </Button>
-      } />
+      <DialogTrigger render={<Button><Plus className="h-4 w-4 mr-2" />Nuevo taller</Button>} />
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Nuevo taller</DialogTitle>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>Nuevo taller</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
             <Label htmlFor="tenant-name" required>Nombre del taller</Label>
-            <Input
-              id="tenant-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Taller El Turco"
-              required
-              autoFocus
-            />
+            <Input id="tenant-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Taller El Turco" required autoFocus />
           </div>
           <DialogFooter>
             <DialogClose render={<Button variant="outline" type="button" />}>Cancelar</DialogClose>
@@ -311,69 +261,56 @@ function CreateTenantDialog({ onCreated }: { onCreated: (tenant: TenantResponse)
   );
 }
 
-// ── Push status card ──────────────────────────────────────────────────────────
+// ── Talleres tab ──────────────────────────────────────────────────────────────
 
-function PushCard() {
-  const [status, setStatus] = useState<PushStatusResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+function TalleresTab() {
+  const [tenants, setTenants] = useState<TenantResponse[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const data = await adminApi.getPushStatus();
-      setStatus(data);
-    } catch {
-      toast.error("No se pudo obtener el estado de Push");
-    } finally {
-      setLoading(false);
-    }
+    try { setTenants(await adminApi.getTenants()); }
+    catch { toast.error("No se pudo cargar la lista de talleres"); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
+  const active = tenants.filter((t) => t.isActive).length;
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold flex items-center gap-2">
-          🔔 Push Notifications (VAPID)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {loading ? (
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <Loader2 className="h-4 w-4 animate-spin" /> Verificando...
-          </div>
-        ) : status ? (
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2">
-              {status.isConfigured ? (
-                <Badge className="bg-green-100 text-green-700 border-green-200">✅ VAPID configurado</Badge>
-              ) : (
-                <Badge variant="destructive">❌ VAPID no configurado</Badge>
-              )}
-              {status.publicKeyPreview && (
-                <span className="text-gray-400 font-mono text-xs">{status.publicKeyPreview}</span>
-              )}
-            </div>
-            {!status.isConfigured && (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-700 text-xs space-y-1">
-                <p className="font-semibold">Variables faltantes en Railway:</p>
-                <p className="font-mono">Push__VapidPublicKey</p>
-                <p className="font-mono">Push__VapidPrivateKey</p>
-                <p className="mt-1 text-amber-600">Nota: usar doble guión bajo __ como separador (no dos puntos)</p>
-              </div>
-            )}
-          </div>
-        ) : null}
-        <Button size="sm" variant="outline" onClick={load} disabled={loading} className="gap-1">
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-sm text-gray-500">
+          {active} activo{active !== 1 ? "s" : ""} de {tenants.length} en total
+        </p>
+        <CreateTenantDialog onCreated={(t) => setTenants((p) => [t, ...p])} />
+      </div>
+
+      {loading ? (
+        <div className="py-16 flex items-center justify-center gap-2 text-sm text-gray-400">
+          <Loader2 className="h-4 w-4 animate-spin" /> Cargando...
+        </div>
+      ) : tenants.length === 0 ? (
+        <div className="py-16 text-center text-sm text-gray-400">
+          No hay talleres registrados. Creá el primero.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {tenants.map((tenant) => (
+            <TenantRow
+              key={tenant.id}
+              tenant={tenant}
+              onToggle={() => setTenants((p) => p.map((t) => t.id === tenant.id ? { ...t, isActive: !t.isActive } : t))}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
-// ── WhatsApp status card ──────────────────────────────────────────────────────
+// ── WhatsApp card ─────────────────────────────────────────────────────────────
 
 function WhatsAppCard() {
   const [status, setStatus] = useState<WhatsAppStatusResponse | null>(null);
@@ -389,6 +326,14 @@ function WhatsAppCard() {
     if (qrTimerRef.current) { clearInterval(qrTimerRef.current); qrTimerRef.current = null; }
   };
 
+  const checkStatus = useCallback(async () => {
+    setLoading(true); setQr(null); stopQrTimer(); setQrCountdown(0);
+    try { setStatus(await adminApi.getWhatsAppStatus()); }
+    catch (err) { toast.error(err instanceof Error ? err.message : "Error al verificar"); }
+    finally { setLoading(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchQr = useCallback(async () => {
     setLoadingQr(true);
     try {
@@ -396,11 +341,9 @@ function WhatsAppCard() {
       setQr(result);
       if (result.isAlreadyConnected) {
         toast.success("¡Ya está conectado!");
-        stopQrTimer();
-        setQrCountdown(0);
+        stopQrTimer(); setQrCountdown(0);
         await checkStatus();
       } else if (result.qrBase64) {
-        // Start 18s countdown then auto-refresh
         setQrCountdown(18);
       }
     } catch (err) {
@@ -409,248 +352,217 @@ function WhatsAppCard() {
       setLoadingQr(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [checkStatus]);
 
   useEffect(() => {
     if (qrCountdown <= 0) return;
-    const t = setTimeout(() => {
-      setQrCountdown((c) => {
-        if (c <= 1) { fetchQr(); return 0; }
-        return c - 1;
-      });
-    }, 1000);
+    const t = setTimeout(() => setQrCountdown((c) => { if (c <= 1) { fetchQr(); return 0; } return c - 1; }), 1000);
     return () => clearTimeout(t);
   }, [qrCountdown, fetchQr]);
 
   useEffect(() => () => stopQrTimer(), []);
-
-  const checkStatus = async () => {
-    setLoading(true);
-    setQr(null);
-    stopQrTimer();
-    setQrCountdown(0);
-    try {
-      setStatus(await adminApi.getWhatsAppStatus());
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al verificar");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleShowQr = () => fetchQr();
-
-  const sendTest = async () => {
-    if (!testPhone.trim()) return;
-    setTesting(true);
-    try {
-      await adminApi.testWhatsApp(testPhone.trim());
-      toast.success("Mensaje de prueba enviado ✓");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al enviar");
-    } finally {
-      setTesting(false);
-    }
-  };
 
   const connected = status?.connectionState?.toLowerCase() === "open";
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold">WhatsApp (Evolution API)</CardTitle>
-          <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading}>
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><RefreshCw className="h-3.5 w-3.5 mr-1" />Verificar</>}
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <span className="text-xl">💬</span> WhatsApp
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading} className="h-7 text-xs gap-1">
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            Verificar
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {status ? (
+      <CardContent className="space-y-3 text-sm">
+        {!status ? (
+          <p className="text-gray-400 text-xs">Hacé clic en "Verificar" para ver el estado.</p>
+        ) : (
           <>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2">
               {connected
-                ? <Wifi className="h-4 w-4 text-green-500" />
-                : <WifiOff className="h-4 w-4 text-red-400" />}
-              <span className={connected ? "text-green-700 font-medium" : "text-red-600 font-medium"}>
-                {connected ? "Conectado" : "Desconectado"}
-              </span>
+                ? <><Wifi className="h-4 w-4 text-green-500" /><span className="text-green-700 font-medium">Conectado</span></>
+                : <><WifiOff className="h-4 w-4 text-red-400" /><span className="text-red-600 font-medium">Desconectado</span></>}
               {status.connectionState && (
                 <span className="text-gray-400 font-mono text-xs">({status.connectionState})</span>
               )}
             </div>
 
+            {!status.isConfigured && (
+              <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-700 space-y-0.5">
+                <p className="font-semibold">Variables faltantes en Railway:</p>
+                <p className="font-mono">Evolution__BaseUrl · Evolution__ApiKey · Evolution__Instance</p>
+              </div>
+            )}
+
             {status.error && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 font-mono break-all">
+              <div className="text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-700 font-mono break-all">
                 {status.error}
               </div>
             )}
 
-            <div className="text-xs text-gray-400 space-y-0.5">
-              <p><span className="font-medium text-gray-500">URL:</span> {status.baseUrl ?? "—"}</p>
-              <p><span className="font-medium text-gray-500">Instancia:</span> {status.instance ?? "—"}</p>
-            </div>
-
-            {!status.isConfigured && (
-              <p className="text-sm text-amber-600">
-                ⚠️ Evolution API no está configurada. Revisá las variables de entorno en Railway:
-                <code className="ml-1 text-xs">Evolution__BaseUrl</code>, <code className="text-xs">Evolution__ApiKey</code>, <code className="text-xs">Evolution__Instance</code>
-              </p>
-            )}
-
             {status.isConfigured && !connected && (
-              <div className="space-y-3 pt-1 border-t">
-                <p className="text-sm text-amber-600 font-medium">
-                  ⚠️ Sesión desconectada — necesita re-escanear el QR
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleShowQr}
-                  disabled={loadingQr}
-                  className="gap-2"
-                >
-                  {loadingQr
-                    ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Generando QR...</>
-                    : <><QrCode className="h-3.5 w-3.5" />Mostrar QR para reconectar</>}
+              <div className="space-y-2 pt-1 border-t">
+                <p className="text-xs text-amber-600 font-medium">⚠️ Sesión desconectada — re-escanear QR</p>
+                <Button size="sm" variant="outline" onClick={fetchQr} disabled={loadingQr} className="gap-1.5 h-8 text-xs">
+                  {loadingQr ? <Loader2 className="h-3 w-3 animate-spin" /> : <QrCode className="h-3 w-3" />}
+                  Mostrar QR
                 </Button>
-
                 {qr?.qrBase64 && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-gray-500">
-                      Abrí WhatsApp → ⋮ → <strong>Dispositivos vinculados</strong> → <strong>Vincular dispositivo</strong> → escaneá:
-                    </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-500">WhatsApp → ⋮ → <strong>Dispositivos vinculados</strong> → <strong>Vincular dispositivo</strong></p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={qr.qrBase64}
-                      alt="QR WhatsApp"
-                      className="w-64 h-64 border-2 border-gray-200 rounded-xl"
-                    />
-                    <div className="flex items-center gap-3">
-                      {qrCountdown > 0 ? (
-                        <p className="text-xs text-amber-600 font-medium">
-                          Se actualiza en {qrCountdown}s...
-                        </p>
-                      ) : (
-                        <Button size="sm" variant="outline" onClick={handleShowQr} disabled={loadingQr} className="gap-2">
-                          <RefreshCw className="h-3.5 w-3.5" />
-                          Nuevo QR
-                        </Button>
-                      )}
-                      <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading} className="gap-2 text-green-700 border-green-300 hover:bg-green-50">
-                        <RefreshCw className="h-3.5 w-3.5" />
-                        Verificar si conectó
+                    <img src={qr.qrBase64} alt="QR WhatsApp" className="w-56 h-56 border-2 border-gray-200 rounded-xl" />
+                    <div className="flex items-center gap-2">
+                      {qrCountdown > 0
+                        ? <span className="text-xs text-amber-600">Actualizando en {qrCountdown}s…</span>
+                        : <Button size="sm" variant="outline" onClick={fetchQr} disabled={loadingQr} className="h-7 text-xs gap-1"><RefreshCw className="h-3 w-3" />Nuevo QR</Button>}
+                      <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading} className="h-7 text-xs gap-1 text-green-700 border-green-300">
+                        <RefreshCw className="h-3 w-3" />Verificar
                       </Button>
                     </div>
                   </div>
                 )}
-
-                {qr?.error && (
-                  <p className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">{qr.error}</p>
-                )}
+                {qr?.error && <p className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">{qr.error}</p>}
               </div>
             )}
 
             {status.isConfigured && connected && (
               <div className="space-y-2 pt-1 border-t">
-                <p className="text-xs text-gray-500 font-medium">Enviar mensaje de prueba</p>
+                <p className="text-xs text-gray-500 font-medium">Mensaje de prueba</p>
                 <div className="flex gap-2">
-                  <Input
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                    placeholder="+54 9 291 414-1049"
-                    className="text-sm h-8"
-                  />
-                  <Button size="sm" onClick={sendTest} disabled={testing || !testPhone.trim()}>
-                    {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  <Input value={testPhone} onChange={(e) => setTestPhone(e.target.value)} placeholder="+54 9 291 414-1049" className="text-xs h-8" />
+                  <Button size="sm" onClick={async () => { setTesting(true); try { await adminApi.testWhatsApp(testPhone.trim()); toast.success("Enviado ✓"); } catch (err) { toast.error(err instanceof Error ? err.message : "Error"); } finally { setTesting(false); } }} disabled={testing || !testPhone.trim()} className="h-8">
+                    {testing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                   </Button>
                 </div>
               </div>
             )}
           </>
-        ) : (
-          <p className="text-sm text-gray-400">Hacé clic en "Verificar" para ver el estado de la conexión.</p>
         )}
       </CardContent>
     </Card>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Push card ─────────────────────────────────────────────────────────────────
 
-export default function AdminPage() {
-  const [tenants, setTenants] = useState<TenantResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+function PushCard() {
+  const [status, setStatus] = useState<PushStatusResponse | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const data = await adminApi.getTenants();
-      setTenants(data);
-    } catch {
-      toast.error("No se pudo cargar la lista de talleres");
-    } finally {
-      setLoading(false);
-    }
+    try { setStatus(await adminApi.getPushStatus()); }
+    catch { toast.error("No se pudo verificar Push"); }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const handleTenantCreated = (tenant: TenantResponse) => {
-    setTenants((prev) => [tenant, ...prev]);
-  };
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <span className="text-xl">🔔</span> Push (VAPID)
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={load} disabled={loading} className="h-7 text-xs gap-1">
+            {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            Actualizar
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        {loading && !status ? (
+          <p className="text-xs text-gray-400">Verificando…</p>
+        ) : status ? (
+          <>
+            <div className="flex items-center gap-2">
+              {status.isConfigured
+                ? <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">✅ Configurado</Badge>
+                : <Badge variant="destructive" className="text-xs">❌ No configurado</Badge>}
+              {status.publicKeyPreview && (
+                <span className="text-gray-400 font-mono text-xs">{status.publicKeyPreview}</span>
+              )}
+            </div>
 
-  const handleTenantToggled = (id: string) => {
-    setTenants((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, isActive: !t.isActive } : t))
-    );
-  };
+            {!status.isConfigured ? (
+              <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-700 space-y-1">
+                <p className="font-semibold">Variables faltantes en Railway:</p>
+                <p className="font-mono">Push__VapidPublicKey</p>
+                <p className="font-mono">Push__VapidPrivateKey</p>
+                <p className="text-amber-600 mt-1">Usar __ (doble guión bajo) como separador.</p>
+              </div>
+            ) : (
+              <div className="text-xs bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-blue-700 space-y-1">
+                <p className="font-semibold">Verificar también en Vercel:</p>
+                <p>La variable <span className="font-mono">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> debe ser exactamente igual a <span className="font-mono">Push__VapidPublicKey</span> de Railway.</p>
+                <p>Si no coinciden, las suscripciones de los mecánicos son inválidas — hay que reactivarlas desde el link del mecánico.</p>
+              </div>
+            )}
+          </>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
 
-  const active = tenants.filter((t) => t.isActive).length;
-  const total = tenants.length;
+// ── Integraciones tab ─────────────────────────────────────────────────────────
+
+function IntegracionesTab() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <WhatsAppCard />
+      <PushCard />
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+type Tab = "talleres" | "integraciones";
+
+const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+  { key: "talleres",      label: "Talleres",      icon: <Building2 className="h-4 w-4" /> },
+  { key: "integraciones", label: "Integraciones", icon: <Plug className="h-4 w-4" /> },
+];
+
+export default function AdminPage() {
+  const [tab, setTab] = useState<Tab>("talleres");
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Talleres</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {active} activo{active !== 1 ? "s" : ""} de {total} en total
-          </p>
-        </div>
-        <CreateTenantDialog onCreated={handleTenantCreated} />
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Administración</h1>
+        <p className="text-sm text-gray-500 mt-1">Panel de control del sistema</p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Todos los talleres</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="py-12 flex items-center justify-center gap-2 text-sm text-gray-400">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando...
-            </div>
-          ) : tenants.length === 0 ? (
-            <div className="py-12 text-center text-sm text-gray-400">
-              No hay talleres registrados. Creá el primero.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {tenants.map((tenant) => (
-                <TenantRow
-                  key={tenant.id}
-                  tenant={tenant}
-                  onToggle={() => handleTenantToggled(tenant.id)}
-                />
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Tab bar */}
+      <div className="flex border-b border-gray-200">
+        {TABS.map(({ key, label, icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              tab === key
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            {icon}
+            {label}
+          </button>
+        ))}
+      </div>
 
-      <WhatsAppCard />
-      <PushCard />
+      {/* Content */}
+      {tab === "talleres"      && <TalleresTab />}
+      {tab === "integraciones" && <IntegracionesTab />}
     </div>
   );
 }
