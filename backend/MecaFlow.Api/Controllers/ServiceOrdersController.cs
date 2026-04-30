@@ -157,14 +157,18 @@ public class ServiceOrdersController(
 
         // Delete existing items directly (avoids EF change-tracker concurrency issues)
         await db.ServiceItems.Where(i => i.ServiceOrderId == order.Id).ExecuteDeleteAsync();
-        db.ServiceItems.AddRange(dto.Items.Select(i => new ServiceItem
+        var newItems = dto.Items.Select(i => new ServiceItem
         {
             ServiceOrderId = order.Id,
             Description = i.Description ?? "",
             Type = i.Type,
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice
-        }));
+        }).ToList();
+        db.ServiceItems.AddRange(newItems);
+
+        // Always recompute TotalEstimate from the actual items (same as Create)
+        order.TotalEstimate = newItems.Sum(i => i.Quantity * i.UnitPrice);
 
         db.ServiceOrderLogs.Add(new ServiceOrderLog
         {

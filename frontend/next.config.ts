@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Increment this manually with each meaningful deploy
-const APP_VERSION = "v1.49";
+const APP_VERSION = "v1.50";
 
 const nextConfig: NextConfig = {
   env: {

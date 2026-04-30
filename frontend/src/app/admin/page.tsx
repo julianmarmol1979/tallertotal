@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, ChevronDown, ChevronRight, Loader2, Trash2, Power, Wifi, WifiOff, Send, QrCode, RefreshCw } from "lucide-react";
-import { adminApi, type TenantResponse, type UserResponse, type WhatsAppStatusResponse, type WhatsAppQrResponse } from "@/lib/api";
+import { adminApi, type TenantResponse, type UserResponse, type WhatsAppStatusResponse, type WhatsAppQrResponse, type PushStatusResponse } from "@/lib/api";
 
 // ── Tenant row ────────────────────────────────────────────────────────────────
 
@@ -311,6 +311,68 @@ function CreateTenantDialog({ onCreated }: { onCreated: (tenant: TenantResponse)
   );
 }
 
+// ── Push status card ──────────────────────────────────────────────────────────
+
+function PushCard() {
+  const [status, setStatus] = useState<PushStatusResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await adminApi.getPushStatus();
+      setStatus(data);
+    } catch {
+      toast.error("No se pudo obtener el estado de Push");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          🔔 Push Notifications (VAPID)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-gray-400">
+            <Loader2 className="h-4 w-4 animate-spin" /> Verificando...
+          </div>
+        ) : status ? (
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              {status.isConfigured ? (
+                <Badge className="bg-green-100 text-green-700 border-green-200">✅ VAPID configurado</Badge>
+              ) : (
+                <Badge variant="destructive">❌ VAPID no configurado</Badge>
+              )}
+              {status.publicKeyPreview && (
+                <span className="text-gray-400 font-mono text-xs">{status.publicKeyPreview}</span>
+              )}
+            </div>
+            {!status.isConfigured && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-amber-700 text-xs space-y-1">
+                <p className="font-semibold">Variables faltantes en Railway:</p>
+                <p className="font-mono">Push__VapidPublicKey</p>
+                <p className="font-mono">Push__VapidPrivateKey</p>
+                <p className="mt-1 text-amber-600">Nota: usar doble guión bajo __ como separador (no dos puntos)</p>
+              </div>
+            )}
+          </div>
+        ) : null}
+        <Button size="sm" variant="outline" onClick={load} disabled={loading} className="gap-1">
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Actualizar
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── WhatsApp status card ──────────────────────────────────────────────────────
 
 function WhatsAppCard() {
@@ -588,6 +650,7 @@ export default function AdminPage() {
       </Card>
 
       <WhatsAppCard />
+      <PushCard />
     </div>
   );
 }

@@ -173,6 +173,7 @@ export const adminApi = {
       method: "POST",
       body: JSON.stringify({ phone, message }),
     }),
+  getPushStatus: () => request<PushStatusResponse>("/admin/push/status"),
 };
 
 // Admin types
@@ -204,4 +205,9 @@ export interface WhatsAppQrResponse {
   isAlreadyConnected: boolean;
   qrBase64?: string;
   error?: string;
+}
+
+export interface PushStatusResponse {
+  isConfigured: boolean;
+  publicKeyPreview?: string;
 }

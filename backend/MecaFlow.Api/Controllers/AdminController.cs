@@ -11,7 +11,7 @@ namespace TallerTotal.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "SuperAdmin")]
-public class AdminController(AppDbContext db, IWhatsAppService whatsApp) : ControllerBase
+public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfiguration config) : ControllerBase
 {
     // GET /api/admin/whatsapp/status
     [HttpGet("whatsapp/status")]
@@ -36,6 +36,19 @@ public class AdminController(AppDbContext db, IWhatsAppService whatsApp) : Contr
         var error = await whatsApp.SendTestAsync(req.Phone, req.Message ?? "🔧 TallerTotal - test de conexión WhatsApp");
         if (error is null) return Ok(new { ok = true });
         return BadRequest(new { error });
+    }
+
+    // GET /api/admin/push/status
+    [HttpGet("push/status")]
+    public IActionResult PushStatus()
+    {
+        var publicKey  = config["Push:VapidPublicKey"];
+        var privateKey = config["Push:VapidPrivateKey"];
+        return Ok(new
+        {
+            isConfigured = !string.IsNullOrWhiteSpace(publicKey) && !string.IsNullOrWhiteSpace(privateKey),
+            publicKeyPreview = string.IsNullOrWhiteSpace(publicKey) ? null : publicKey[..Math.Min(12, publicKey.Length)] + "…",
+        });
     }
 
     // GET /api/admin/tenants
