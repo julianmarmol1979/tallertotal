@@ -5,4 +5,5 @@ namespace TallerTotal.Api.Services;
 public interface IPushService
 {
     Task SendOrderAssignedAsync(Mechanic mechanic, ServiceOrder order);
+    Task SendStatusChangedAsync(Mechanic mechanic, ServiceOrder order, ServiceOrderStatus newStatus);
 }

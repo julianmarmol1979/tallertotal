@@ -6,7 +6,38 @@ namespace TallerTotal.Api.Services;
 
 public class PushService(IConfiguration config, ILogger<PushService> logger) : IPushService
 {
-    public async Task SendOrderAssignedAsync(Mechanic mechanic, ServiceOrder order)
+    private static readonly Dictionary<ServiceOrderStatus, string> StatusLabels = new()
+    {
+        [ServiceOrderStatus.Open]       = "Abierta",
+        [ServiceOrderStatus.InProgress] = "En progreso",
+        [ServiceOrderStatus.Completed]  = "Completada",
+        [ServiceOrderStatus.Cancelled]  = "Cancelada",
+    };
+
+    public Task SendOrderAssignedAsync(Mechanic mechanic, ServiceOrder order)
+    {
+        var orderNum = order.Id.ToString()[^8..].ToUpper();
+        return Send(mechanic, new
+        {
+            title = "Nueva orden asignada 🔧",
+            body  = $"Orden #{orderNum} · {order.Vehicle.LicensePlate} — {order.Vehicle.Brand} {order.Vehicle.Model}",
+            url   = "/ordenes",
+        });
+    }
+
+    public Task SendStatusChangedAsync(Mechanic mechanic, ServiceOrder order, ServiceOrderStatus newStatus)
+    {
+        var orderNum   = order.Id.ToString()[^8..].ToUpper();
+        var label      = StatusLabels.GetValueOrDefault(newStatus, newStatus.ToString());
+        return Send(mechanic, new
+        {
+            title = $"Orden actualizada — {label}",
+            body  = $"Orden #{orderNum} · {order.Vehicle.LicensePlate} — {order.Vehicle.Brand} {order.Vehicle.Model}",
+            url   = "/ordenes",
+        });
+    }
+
+    private async Task Send(Mechanic mechanic, object payload)
     {
         if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson)) return;
 
@@ -21,36 +52,24 @@ public class PushService(IConfiguration config, ILogger<PushService> logger) : I
         }
 
         PushSubscription? sub;
-        try
-        {
-            sub = JsonSerializer.Deserialize<PushSubscription>(mechanic.PushSubscriptionJson);
-        }
+        try { sub = JsonSerializer.Deserialize<PushSubscription>(mechanic.PushSubscriptionJson); }
         catch
         {
             logger.LogWarning("Invalid push subscription JSON for mechanic {Id}", mechanic.Id);
             return;
         }
-
         if (sub is null) return;
 
-        var orderNum = order.Id.ToString()[^8..].ToUpper();
-        var payload = JsonSerializer.Serialize(new
-        {
-            title = "Nueva orden asignada 🔧",
-            body  = $"Orden #{orderNum} · {order.Vehicle.LicensePlate} — {order.Vehicle.Brand} {order.Vehicle.Model}",
-            url   = $"/ordenes",
-        });
-
+        var json         = JsonSerializer.Serialize(payload);
         var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
-        var client = new WebPushClient();
+        var client       = new WebPushClient();
 
         try
         {
-            await client.SendNotificationAsync(sub, payload, vapidDetails);
+            await client.SendNotificationAsync(sub, json, vapidDetails);
         }
         catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone)
         {
-            // Subscription expired — clear it so we don't keep trying
             logger.LogInformation("Push subscription expired for mechanic {Id} — clearing", mechanic.Id);
             mechanic.PushSubscriptionJson = null;
         }

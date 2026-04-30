@@ -212,6 +212,7 @@ public class ServiceOrdersController(
 
         _ = whatsApp.SendStatusChangedAsync(order, status);
         _ = email.SendStatusChangedAsync(order, status);
+        _ = NotifyMechanicStatusAsync(order, status);
 
         return MapToDto(order);
     }
@@ -259,5 +260,19 @@ public class ServiceOrdersController(
 
         if (mechanic is not null)
             await push.SendOrderAssignedAsync(mechanic, order);
+    }
+
+    private async Task NotifyMechanicStatusAsync(ServiceOrder order, ServiceOrderStatus newStatus)
+    {
+        if (string.IsNullOrWhiteSpace(order.AssignedMechanic)) return;
+
+        var mechanic = await db.Mechanics
+            .FirstOrDefaultAsync(m =>
+                m.TenantId == order.Vehicle.Customer.TenantId &&
+                m.Name == order.AssignedMechanic &&
+                m.PushSubscriptionJson != null);
+
+        if (mechanic is not null)
+            await push.SendStatusChangedAsync(mechanic, order, newStatus);
     }
 }
