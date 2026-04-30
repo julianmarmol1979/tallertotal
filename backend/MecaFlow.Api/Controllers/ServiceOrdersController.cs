@@ -156,10 +156,14 @@ public class ServiceOrdersController(
             order.CompletedAt = DateTime.UtcNow;
 
         db.ServiceItems.RemoveRange(order.Items);
+        await db.SaveChangesAsync(); // flush deletes before adding new items
         order.Items = dto.Items.Select(i => new ServiceItem
         {
-            ServiceOrderId = order.Id, Description = i.Description,
-            Type = i.Type, Quantity = i.Quantity, UnitPrice = i.UnitPrice
+            ServiceOrderId = order.Id,
+            Description = i.Description ?? "",
+            Type = i.Type,
+            Quantity = i.Quantity,
+            UnitPrice = i.UnitPrice
         }).ToList();
 
         db.ServiceOrderLogs.Add(new ServiceOrderLog

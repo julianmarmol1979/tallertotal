@@ -74,6 +74,22 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseHttpsRedirection();
+
+// Return exception details as plain-text so the frontend can surface them
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "text/plain";
+        var msg = feature?.Error is { } ex
+            ? $"{ex.GetType().Name}: {ex.Message}"
+            : "Internal server error";
+        await context.Response.WriteAsync(msg);
+    });
+});
+
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.Run();
