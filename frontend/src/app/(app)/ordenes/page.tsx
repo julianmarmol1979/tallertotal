@@ -136,23 +136,32 @@ function EditOrderDialog({ order, mechanics, onSaved, onClose }: {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const validItems = items
+        .filter((i) => i.description.trim().length > 0)
+        .map((i) => ({
+          ...i,
+          quantity: Math.max(0.01, i.quantity),
+          unitPrice: Math.max(0, i.unitPrice),
+        }));
+
       const dto: UpdateServiceOrderDto = {
         status,
-        diagnosisNotes: diagnosis || undefined,
+        diagnosisNotes: diagnosis.trim() || undefined,
         mileageIn: mileage ? parseInt(mileage) : undefined,
-        assignedMechanic: mechanic || undefined,
-        internalNotes: internalNotes || undefined,
+        assignedMechanic: mechanic.trim() || undefined,
+        internalNotes: internalNotes.trim() || undefined,
         estimatedDeliveryAt: delivery || undefined,
         totalEstimate,
         totalFinal: parseFloat(totalFinal) || 0,
-        items: items.filter((i) => i.description.trim()),
+        items: validItems,
       };
       await serviceOrdersApi.update(order.id, dto);
       toast.success("Orden actualizada");
       onSaved();
       onClose();
-    } catch {
-      toast.error("Error al guardar");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al guardar";
+      toast.error(msg.length > 200 ? msg.slice(0, 200) + "…" : msg);
     } finally {
       setSaving(false);
     }
