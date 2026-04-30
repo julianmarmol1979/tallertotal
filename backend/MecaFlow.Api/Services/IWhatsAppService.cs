@@ -15,7 +15,28 @@ public interface IWhatsAppService
     /// Returns true if state reached "open" without needing a QR scan.
     /// </summary>
     Task<bool> TryReconnectAsync();
+
+    /// <summary>
+    /// Returns the QR code (base64 data URL) needed to reconnect a disconnected instance.
+    /// Returns null if already connected or not configured.
+    /// </summary>
+    Task<WhatsAppQrResult> GetQrAsync();
 }
+
+public record WhatsAppStatus(
+    bool IsConfigured,
+    string? BaseUrl,
+    string? Instance,
+    string? ConnectionState,
+    string? Error
+);
+
+public record WhatsAppQrResult(
+    bool IsConfigured,
+    bool IsAlreadyConnected,
+    string? QrBase64,
+    string? Error
+);
 
 public record WhatsAppStatus(
     bool IsConfigured,

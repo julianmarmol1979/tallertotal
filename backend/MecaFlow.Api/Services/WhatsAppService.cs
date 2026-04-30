@@ -92,6 +92,54 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
         }
     }
 
+    public async Task<WhatsAppQrResult> GetQrAsync()
+    {
+        if (!IsConfigured)
+            return new WhatsAppQrResult(false, false, null, "Evolution API not configured");
+
+        try
+        {
+            // Check current state first
+            using var http = BuildClient();
+            var stateRes = await http.GetAsync($"{BaseUrl}/instance/connectionState/{Instance}");
+            var stateBody = await stateRes.Content.ReadAsStringAsync();
+            var stateJson = JsonNode.Parse(stateBody);
+            var state = stateJson?["instance"]?["state"]?.GetValue<string>()
+                     ?? stateJson?["state"]?.GetValue<string>();
+
+            if (string.Equals(state, "open", StringComparison.OrdinalIgnoreCase))
+                return new WhatsAppQrResult(true, true, null, null);
+
+            // Request QR from Evolution API
+            var connectRes = await http.GetAsync($"{BaseUrl}/instance/connect/{Instance}");
+            var connectBody = await connectRes.Content.ReadAsStringAsync();
+
+            logger.LogInformation("Evolution connect response: {Body}", connectBody);
+
+            var connectJson = JsonNode.Parse(connectBody);
+
+            // Evolution v2 returns { "base64": "data:image/png;base64,..." }
+            // Evolution v1 returns { "code": "data:image/png;base64,..." }
+            var qr = connectJson?["base64"]?.GetValue<string>()
+                  ?? connectJson?["qrcode"]?.GetValue<string>()
+                  ?? connectJson?["code"]?.GetValue<string>();
+
+            if (string.IsNullOrEmpty(qr))
+                return new WhatsAppQrResult(true, false, null, $"No QR in response: {connectBody}");
+
+            // Ensure it's a data URL
+            if (!qr.StartsWith("data:"))
+                qr = $"data:image/png;base64,{qr}";
+
+            return new WhatsAppQrResult(true, false, qr, null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "GetQrAsync failed");
+            return new WhatsAppQrResult(true, false, null, ex.Message);
+        }
+    }
+
     public async Task<bool> TryReconnectAsync()
     {
         if (!IsConfigured) return false;

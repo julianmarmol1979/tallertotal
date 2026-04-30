@@ -24,8 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, ChevronDown, ChevronRight, Loader2, Trash2, Power, Wifi, WifiOff, Send } from "lucide-react";
-import { adminApi, type TenantResponse, type UserResponse, type WhatsAppStatusResponse } from "@/lib/api";
+import { Plus, ChevronDown, ChevronRight, Loader2, Trash2, Power, Wifi, WifiOff, Send, QrCode, RefreshCw } from "lucide-react";
+import { adminApi, type TenantResponse, type UserResponse, type WhatsAppStatusResponse, type WhatsAppQrResponse } from "@/lib/api";
 
 // ── Tenant row ────────────────────────────────────────────────────────────────
 
@@ -318,15 +318,34 @@ function WhatsAppCard() {
   const [loading, setLoading] = useState(false);
   const [testPhone, setTestPhone] = useState("");
   const [testing, setTesting] = useState(false);
+  const [qr, setQr] = useState<WhatsAppQrResponse | null>(null);
+  const [loadingQr, setLoadingQr] = useState(false);
 
   const checkStatus = async () => {
     setLoading(true);
+    setQr(null);
     try {
       setStatus(await adminApi.getWhatsAppStatus());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al verificar");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShowQr = async () => {
+    setLoadingQr(true);
+    try {
+      const result = await adminApi.getWhatsAppQr();
+      setQr(result);
+      if (result.isAlreadyConnected) {
+        toast.success("¡Ya está conectado!");
+        await checkStatus();
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al obtener QR");
+    } finally {
+      setLoadingQr(false);
     }
   };
 
@@ -351,7 +370,7 @@ function WhatsAppCard() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold">WhatsApp (Evolution API)</CardTitle>
           <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading}>
-            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Verificar estado"}
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><RefreshCw className="h-3.5 w-3.5 mr-1" />Verificar</>}
           </Button>
         </div>
       </CardHeader>
@@ -389,9 +408,47 @@ function WhatsAppCard() {
             )}
 
             {status.isConfigured && !connected && (
-              <p className="text-sm text-amber-600">
-                ⚠️ La instancia está desconectada. Entrá al panel de Evolution API, abrí la instancia y escaneá el QR con WhatsApp.
-              </p>
+              <div className="space-y-3 pt-1 border-t">
+                <p className="text-sm text-amber-600 font-medium">
+                  ⚠️ Sesión desconectada — necesita re-escanear el QR
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleShowQr}
+                  disabled={loadingQr}
+                  className="gap-2"
+                >
+                  {loadingQr
+                    ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Generando QR...</>
+                    : <><QrCode className="h-3.5 w-3.5" />Mostrar QR para reconectar</>}
+                </Button>
+
+                {qr?.qrBase64 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-500">
+                      Abrí WhatsApp → ⋮ Dispositivos vinculados → Vincular dispositivo → escaneá este QR:
+                    </p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={qr.qrBase64}
+                      alt="QR WhatsApp"
+                      className="w-48 h-48 border rounded-lg"
+                    />
+                    <p className="text-xs text-gray-400">
+                      El QR expira en ~60 seg. Si expira, hacé clic en "Mostrar QR" de nuevo.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={checkStatus} disabled={loading} className="gap-2">
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Verificar si conectó
+                    </Button>
+                  </div>
+                )}
+
+                {qr?.error && (
+                  <p className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">{qr.error}</p>
+                )}
+              </div>
             )}
 
             {status.isConfigured && connected && (
@@ -412,7 +469,7 @@ function WhatsAppCard() {
             )}
           </>
         ) : (
-          <p className="text-sm text-gray-400">Hacé clic en "Verificar estado" para ver el estado de la conexión.</p>
+          <p className="text-sm text-gray-400">Hacé clic en "Verificar" para ver el estado de la conexión.</p>
         )}
       </CardContent>
     </Card>

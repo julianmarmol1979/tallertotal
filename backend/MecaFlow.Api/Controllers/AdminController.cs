@@ -21,6 +21,14 @@ public class AdminController(AppDbContext db, IWhatsAppService whatsApp) : Contr
         return Ok(status);
     }
 
+    // GET /api/admin/whatsapp/qr
+    [HttpGet("whatsapp/qr")]
+    public async Task<IActionResult> WhatsAppQr()
+    {
+        var result = await whatsApp.GetQrAsync();
+        return Ok(result);
+    }
+
     // POST /api/admin/whatsapp/test
     [HttpPost("whatsapp/test")]
     public async Task<IActionResult> WhatsAppTest([FromBody] WhatsAppTestRequest req)
