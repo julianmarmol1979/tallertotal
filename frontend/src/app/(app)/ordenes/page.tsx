@@ -13,7 +13,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Plus, FileSpreadsheet, Download, ChevronUp, ChevronDown, ChevronsUpDown,
-  Printer, FileText, CheckCircle, XCircle, History, Link,
+  Printer, FileText, CheckCircle, XCircle, History, Link2,
 } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
@@ -477,7 +477,7 @@ export default function OrdenesPage() {
                                 toast.success("Link del portal copiado");
                               }}
                               className="text-gray-400 hover:text-emerald-600">
-                              <Link className="h-3.5 w-3.5" />
+                              <Link2 className="h-3.5 w-3.5" />
                             </Button>
                             {/* Historial */}
                             <Button variant="ghost" size="icon-sm"

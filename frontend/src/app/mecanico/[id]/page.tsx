@@ -33,7 +33,7 @@ async function registerAndSubscribe(vapidKey: string): Promise<PushSubscription>
 
   return reg.pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+    applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
   });
 }
 
@@ -156,7 +156,6 @@ export default function MecanicoPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleUnsubscribe}
-                  disabled={status === "loading"}
                   className="gap-2 text-slate-600"
                 >
                   <BellOff className="h-4 w-4" />
