@@ -450,6 +450,8 @@ function WhatsAppCard() {
 
 // ── Push card ─────────────────────────────────────────────────────────────────
 
+type PushSub = { id: string; name: string; tenantName: string };
+
 function PushCard() {
   const [status, setStatus] = useState<PushStatusResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -457,13 +459,38 @@ function PushCard() {
   const [pubKey, setPubKey] = useState("");
   const [privKey, setPrivKey] = useState("");
   const [saving, setSaving] = useState(false);
+  const [subs, setSubs] = useState<PushSub[]>([]);
+  const [testingId, setTestingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setStatus(await adminApi.getPushStatus()); }
+    try {
+      const [s, subscriptions] = await Promise.all([
+        adminApi.getPushStatus(),
+        adminApi.getPushSubscriptions().catch(() => [] as PushSub[]),
+      ]);
+      setStatus(s);
+      setSubs(subscriptions);
+    }
     catch { toast.error("No se pudo verificar Push"); }
     finally { setLoading(false); }
   }, []);
+
+  const handleTestPush = async (mechanicId: string, mechanicName: string) => {
+    setTestingId(mechanicId);
+    try {
+      const result = await adminApi.testPush(mechanicId);
+      if (result.ok) {
+        toast.success(`✅ Push enviado a ${mechanicName} — revisá el teléfono`);
+      } else {
+        toast.error(`❌ Error: ${result.error}`, { duration: 8000 });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al enviar test");
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -560,6 +587,32 @@ function PushCard() {
                     Cancelar
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Subscriptions + test */}
+            {subs.length > 0 && (
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-xs font-semibold text-gray-600">Mecánicos con push activo:</p>
+                {subs.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                    <div>
+                      <span className="text-xs font-medium text-gray-800">{s.name}</span>
+                      <span className="text-xs text-gray-400 ml-1.5">({s.tenantName})</span>
+                    </div>
+                    <Button
+                      size="sm" variant="outline"
+                      className="h-6 text-xs gap-1"
+                      disabled={testingId === s.id}
+                      onClick={() => handleTestPush(s.id, s.name)}
+                    >
+                      {testingId === s.id
+                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                        : <Send className="h-3 w-3" />}
+                      Test
+                    </Button>
+                  </div>
+                ))}
               </div>
             )}
 

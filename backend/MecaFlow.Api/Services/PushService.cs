@@ -72,26 +72,45 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
         ?? Environment.GetEnvironmentVariable("VAPID_SUBJECT")
         ?? "mailto:admin@tallertotal.app";
 
-    private async Task Send(Mechanic mechanic, object payload)
+    public Task<string?> TestAsync(Mechanic mechanic) =>
+        SendInternal(mechanic, new
+        {
+            title = "🔔 Test de notificación",
+            body  = "Push configurado correctamente ✓",
+            url   = "/ordenes",
+        }, surfaceErrors: true);
+
+    private Task Send(Mechanic mechanic, object payload) =>
+        SendInternal(mechanic, payload, surfaceErrors: false).ContinueWith(_ => { });
+
+    /// <summary>
+    /// Core send logic.
+    /// surfaceErrors=true  → throws / returns error string (used by TestAsync)
+    /// surfaceErrors=false → swallows errors, only logs (fire-and-forget callers)
+    /// </summary>
+    private async Task<string?> SendInternal(Mechanic mechanic, object payload, bool surfaceErrors)
     {
-        if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson)) return;
+        if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson))
+            return surfaceErrors ? "El mecánico no tiene suscripción push guardada." : null;
 
         var (publicKey, privateKey, subject) = await GetVapidKeysAsync();
 
         if (string.IsNullOrWhiteSpace(publicKey) || string.IsNullOrWhiteSpace(privateKey))
         {
+            const string msg = "Claves VAPID no configuradas.";
             logger.LogWarning("Push VAPID keys not configured — skipping push to mechanic {Name}", mechanic.Name);
-            return;
+            return surfaceErrors ? msg : null;
         }
 
         PushSubscription? sub;
         try { sub = JsonSerializer.Deserialize<PushSubscription>(mechanic.PushSubscriptionJson); }
-        catch
+        catch (Exception ex)
         {
+            var msg = $"JSON de suscripción inválido: {ex.Message}";
             logger.LogWarning("Invalid push subscription JSON for mechanic {Id}", mechanic.Id);
-            return;
+            return surfaceErrors ? msg : null;
         }
-        if (sub is null) return;
+        if (sub is null) return surfaceErrors ? "Suscripción nula después de deserializar." : null;
 
         var json         = JsonSerializer.Serialize(payload);
         var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
@@ -100,15 +119,25 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
         try
         {
             await client.SendNotificationAsync(sub, json, vapidDetails);
+            return null; // success
         }
         catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone)
         {
             logger.LogInformation("Push subscription expired for mechanic {Id} — clearing", mechanic.Id);
             mechanic.PushSubscriptionJson = null;
+            return surfaceErrors ? $"Suscripción expirada (410 Gone) — el mecánico debe reactivar push." : null;
+        }
+        catch (WebPushException ex)
+        {
+            var msg = $"WebPushException {(int)ex.StatusCode}: {ex.Message}";
+            logger.LogError(ex, "WebPush error for mechanic {Id}", mechanic.Id);
+            return surfaceErrors ? msg : null;
         }
         catch (Exception ex)
         {
+            var msg = $"{ex.GetType().Name}: {ex.Message}";
             logger.LogError(ex, "Failed to send push to mechanic {Id}", mechanic.Id);
+            return surfaceErrors ? msg : null;
         }
     }
 }

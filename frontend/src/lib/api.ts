@@ -179,6 +179,13 @@ export const adminApi = {
       method: "PUT",
       body: JSON.stringify({ publicKey, privateKey }),
     }),
+  getPushSubscriptions: () =>
+    request<{ id: string; name: string; tenantName: string }[]>("/admin/push/subscriptions"),
+  testPush: (mechanicId: string) =>
+    request<{ ok: boolean; error?: string }>("/admin/push/test", {
+      method: "POST",
+      body: JSON.stringify({ mechanicId }),
+    }),
 };
 
 // Admin types

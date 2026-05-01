@@ -12,7 +12,7 @@ namespace TallerTotal.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "SuperAdmin")]
-public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfiguration config) : ControllerBase
+public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfiguration config, IPushService push) : ControllerBase
 {
     // GET /api/admin/whatsapp/status
     [HttpGet("whatsapp/status")]
@@ -66,6 +66,37 @@ public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfig
             publicKeyPreview = string.IsNullOrWhiteSpace(publicKey) ? null : publicKey[..Math.Min(12, publicKey.Length)] + "…",
             source,
         });
+    }
+
+    // GET /api/admin/push/subscriptions — mechanics that have a push subscription (across all tenants)
+    [HttpGet("push/subscriptions")]
+    public async Task<IActionResult> PushSubscriptions()
+    {
+        var mechanics = await db.Mechanics
+            .Include(m => m.Tenant)
+            .Where(m => m.PushSubscriptionJson != null)
+            .Select(m => new { m.Id, m.Name, tenantName = m.Tenant.Name })
+            .ToListAsync();
+        return Ok(mechanics);
+    }
+
+    // POST /api/admin/push/test — sends a test push to a mechanic and returns the error (if any)
+    [HttpPost("push/test")]
+    public async Task<IActionResult> PushTest([FromBody] PushTestRequest req)
+    {
+        var mechanic = await db.Mechanics.FirstOrDefaultAsync(m => m.Id == req.MechanicId);
+        if (mechanic is null) return NotFound(new { error = "Mecánico no encontrado" });
+        if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson))
+            return BadRequest(new { error = "El mecánico no tiene suscripción push guardada" });
+
+        var error = await push.TestAsync(mechanic);
+
+        // If subscription expired (410), save the cleared state
+        if (mechanic.PushSubscriptionJson is null)
+            await db.SaveChangesAsync();
+
+        if (error is null) return Ok(new { ok = true });
+        return Ok(new { ok = false, error });
     }
 
     // PUT /api/admin/push/vapid  — saves VAPID keys to the database
