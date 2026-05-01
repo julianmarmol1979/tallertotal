@@ -14,6 +14,9 @@ public class DashboardController(AppDbContext db) : ControllerBase
 {
     private Guid TenantId => Guid.Parse(User.FindFirst("tenantId")!.Value);
 
+    private static readonly string[] SpanishMonths =
+        ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
     [HttpGet("metrics")]
     public async Task<DashboardMetricsDto> GetMetrics()
     {
@@ -63,9 +66,81 @@ public class DashboardController(AppDbContext db) : ControllerBase
 
         var topMechanic = topRaw is null ? null : new TopMechanicDto(topRaw.Name, topRaw.Count);
 
+        // Monthly stats: last 6 months
+        var start6Months = startThisMonth.AddMonths(-5);
+        var allRelevantOrders = await query
+            .Where(o => o.CreatedAt >= start6Months ||
+                        (o.Status == ServiceOrderStatus.Completed && o.CompletedAt >= start6Months))
+            .Select(o => new
+            {
+                o.CreatedAt,
+                o.CompletedAt,
+                o.Status,
+                o.TotalFinal
+            })
+            .ToListAsync();
+
+        var monthlyStats = Enumerable.Range(0, 6)
+            .Select(i =>
+            {
+                var monthStart = startThisMonth.AddMonths(-(5 - i));
+                var monthEnd = monthStart.AddMonths(1);
+                var label = SpanishMonths[monthStart.Month - 1];
+                var orders = allRelevantOrders.Count(o => o.CreatedAt >= monthStart && o.CreatedAt < monthEnd);
+                var revenue = allRelevantOrders
+                    .Where(o => o.Status == ServiceOrderStatus.Completed
+                             && o.CompletedAt >= monthStart
+                             && o.CompletedAt < monthEnd)
+                    .Sum(o => o.TotalFinal);
+                return new MonthlyStatDto(label, revenue, orders);
+            })
+            .ToList();
+
+        // Mechanic stats: completed orders this month grouped by mechanic
+        var mechanicRaw = await query
+            .Where(o => o.Status == ServiceOrderStatus.Completed
+                     && o.CompletedAt >= startThisMonth
+                     && o.AssignedMechanic != null
+                     && o.AssignedMechanic != "")
+            .GroupBy(o => o.AssignedMechanic!)
+            .Select(g => new { Name = g.Key, Orders = g.Count(), Revenue = g.Sum(o => o.TotalFinal) })
+            .ToListAsync();
+        var mechanicStats = mechanicRaw
+            .Select(m => new MechanicStatDto(m.Name, m.Orders, m.Revenue))
+            .OrderByDescending(m => m.Orders)
+            .ToList();
+
+        // Average ticket: completed orders this month with TotalFinal > 0
+        var completedThisMonth = await query
+            .Where(o => o.Status == ServiceOrderStatus.Completed
+                     && o.CompletedAt >= startThisMonth
+                     && o.TotalFinal > 0)
+            .Select(o => o.TotalFinal)
+            .ToListAsync();
+        var avgTicket = completedThisMonth.Count > 0
+            ? completedThisMonth.Average()
+            : 0m;
+
+        // Overdue count: Open or InProgress with EstimatedDeliveryAt < today
+        var today = DateOnly.FromDateTime(now);
+        var overdueCount = await query
+            .Where(o => (o.Status == ServiceOrderStatus.Open || o.Status == ServiceOrderStatus.InProgress)
+                     && o.EstimatedDeliveryAt != null
+                     && o.EstimatedDeliveryAt < today)
+            .CountAsync();
+
+        // Completion rate: % of orders created this month that are Completed
+        var completionRate = ordersThisMonth > 0
+            ? (decimal)await query
+                .Where(o => o.CreatedAt >= startThisMonth && o.Status == ServiceOrderStatus.Completed)
+                .CountAsync() / ordersThisMonth * 100m
+            : 0m;
+
         return new DashboardMetricsDto(
             revenueThisMonth, revenueLastMonth,
             ordersThisMonth, ordersLastMonth,
-            byStatus, topMechanic);
+            byStatus, topMechanic,
+            monthlyStats, mechanicStats,
+            avgTicket, overdueCount, completionRate);
     }
 }

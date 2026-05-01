@@ -88,6 +88,11 @@ export interface DashboardMetrics {
   ordersLastMonth: number;
   ordersByStatus: { status: string; count: number; revenue: number }[];
   topMechanic?: { name: string; orderCount: number };
+  monthlyStats: { month: string; revenue: number; orders: number }[];
+  mechanicStats: { name: string; orders: number; revenue: number }[];
+  avgTicket: number;
+  overdueCount: number;
+  completionRate: number;
 }
 
 export interface CreateCustomerDto {

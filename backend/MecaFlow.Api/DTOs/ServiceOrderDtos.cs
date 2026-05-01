@@ -96,8 +96,15 @@ public record DashboardMetricsDto(
     int OrdersThisMonth,
     int OrdersLastMonth,
     IEnumerable<StatusCountDto> OrdersByStatus,
-    TopMechanicDto? TopMechanic
+    TopMechanicDto? TopMechanic,
+    IEnumerable<MonthlyStatDto> MonthlyStats,
+    IEnumerable<MechanicStatDto> MechanicStats,
+    decimal AvgTicket,
+    int OverdueCount,
+    decimal CompletionRate
 );
 
 public record StatusCountDto(string Status, int Count, decimal Revenue);
 public record TopMechanicDto(string Name, int OrderCount);
+public record MonthlyStatDto(string Month, decimal Revenue, int Orders);
+public record MechanicStatDto(string Name, int Orders, decimal Revenue);

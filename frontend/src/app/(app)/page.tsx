@@ -13,11 +13,16 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import {
-  ClipboardList, Clock, CheckCircle, AlertCircle,
-  TrendingUp, TrendingDown, Minus, DollarSign, Wrench,
+  ClipboardList, CheckCircle,
+  TrendingUp, TrendingDown, Minus, DollarSign,
+  TicketPercent, AlertTriangle,
 } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
 
 const STATUS_TABS: { value: ServiceOrderStatus | "all"; label: string }[] = [
   { value: "all", label: "Todas" },
@@ -25,6 +30,16 @@ const STATUS_TABS: { value: ServiceOrderStatus | "all"; label: string }[] = [
   { value: "InProgress", label: "En progreso" },
   { value: "Completed", label: "Completadas" },
 ];
+
+const STATUS_COLORS: Record<string, string> = {
+  Open: "#0ea5e9",
+  InProgress: "#f59e0b",
+  Completed: "#10b981",
+  Cancelled: "#ef4444",
+};
+
+const fmt = (n: number) =>
+  "$" + n.toLocaleString("es-AR", { minimumFractionDigits: 0 });
 
 export default function DashboardPage() {
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
@@ -93,13 +108,6 @@ export default function DashboardPage() {
     [filtered, page, pageSize]
   );
 
-  const counts = {
-    open: allOrders.filter((o) => o.status === "Open").length,
-    inProgress: allOrders.filter((o) => o.status === "InProgress").length,
-    completed: allOrders.filter((o) => o.status === "Completed").length,
-    total: allOrders.length,
-  };
-
   // Delta helpers
   const delta = (current: number, previous: number) => {
     if (previous === 0) return null;
@@ -110,100 +118,273 @@ export default function DashboardPage() {
 
   const monthName = new Date().toLocaleString("es-AR", { month: "long" });
 
+  // Pie chart data
+  const pieData = (metrics?.ordersByStatus ?? []).map((s) => ({
+    name: statusLabel(s.status),
+    value: s.count,
+    key: s.status,
+  }));
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Resumen del taller</p>
-      </div>
-
-      {/* ── Métricas del mes ── */}
-      <div>
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          Métricas de {monthName}
+        <p className="text-sm text-gray-500 mt-1 capitalize">
+          Resumen del taller · {monthName} {new Date().getFullYear()}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Ingresos */}
-          <Card className="border-l-4 border-l-emerald-500">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Ingresos del mes</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    ${(metrics?.revenueThisMonth ?? 0).toLocaleString("es-AR", { minimumFractionDigits: 0 })}
-                  </p>
-                  {revDelta !== null && (
-                    <p className={`text-xs mt-1 flex items-center gap-0.5 ${revDelta >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                      {revDelta > 0 ? <TrendingUp className="h-3 w-3" /> : revDelta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                      {revDelta > 0 ? "+" : ""}{revDelta.toFixed(1)}% vs mes anterior
-                    </p>
-                  )}
-                </div>
-                <div className="p-2.5 rounded-xl bg-emerald-50">
-                  <DollarSign className="h-5 w-5 text-emerald-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Órdenes este mes */}
-          <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Órdenes del mes</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{metrics?.ordersThisMonth ?? 0}</p>
-                  {ordDelta !== null && (
-                    <p className={`text-xs mt-1 flex items-center gap-0.5 ${ordDelta >= 0 ? "text-blue-600" : "text-red-500"}`}>
-                      {ordDelta > 0 ? <TrendingUp className="h-3 w-3" /> : ordDelta < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                      {ordDelta > 0 ? "+" : ""}{ordDelta.toFixed(1)}% vs mes anterior
-                    </p>
-                  )}
-                </div>
-                <div className="p-2.5 rounded-xl bg-blue-50">
-                  <ClipboardList className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Mecánico más activo */}
-          <Card className="border-l-4 border-l-violet-500">
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Mecánico más activo</p>
-                  {metrics?.topMechanic ? (
-                    <>
-                      <p className="text-lg font-bold text-gray-900 mt-1 truncate max-w-[160px]">
-                        {metrics.topMechanic.name}
-                      </p>
-                      <p className="text-xs text-violet-600 mt-0.5">
-                        {metrics.topMechanic.orderCount} orden{metrics.topMechanic.orderCount !== 1 ? "es" : ""} este mes
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-400 mt-2">Sin datos este mes</p>
-                  )}
-                </div>
-                <div className="p-2.5 rounded-xl bg-violet-50">
-                  <Wrench className="h-5 w-5 text-violet-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
-      {/* ── KPIs de estado ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={<ClipboardList className="h-5 w-5 text-blue-600" />} label="Total" value={counts.total} borderClass="border-l-4 border-l-blue-500" iconBgClass="bg-blue-50" />
-        <KpiCard icon={<AlertCircle className="h-5 w-5 text-sky-500" />} label="Abiertas" value={counts.open} borderClass="border-l-4 border-l-sky-400" iconBgClass="bg-sky-50" />
-        <KpiCard icon={<Clock className="h-5 w-5 text-amber-500" />} label="En progreso" value={counts.inProgress} borderClass="border-l-4 border-l-amber-400" iconBgClass="bg-amber-50" />
-        <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-500" />} label="Completadas" value={counts.completed} borderClass="border-l-4 border-l-green-500" iconBgClass="bg-green-50" />
+      {/* Top KPI row — 5 cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {/* Ingresos del mes */}
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Ingresos del mes</p>
+                <p className="text-xl font-bold text-gray-900 mt-1 truncate">
+                  {fmt(metrics?.revenueThisMonth ?? 0)}
+                </p>
+                <DeltaBadge delta={revDelta} />
+              </div>
+              <div className="p-2.5 rounded-xl bg-emerald-50 shrink-0">
+                <DollarSign className="h-5 w-5 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Órdenes del mes */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Órdenes del mes</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{metrics?.ordersThisMonth ?? 0}</p>
+                <DeltaBadge delta={ordDelta} />
+              </div>
+              <div className="p-2.5 rounded-xl bg-blue-50 shrink-0">
+                <ClipboardList className="h-5 w-5 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ticket promedio */}
+        <Card className="border-l-4 border-l-violet-500">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Ticket promedio</p>
+                <p className="text-xl font-bold text-gray-900 mt-1 truncate">
+                  {fmt(metrics?.avgTicket ?? 0)}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">órdenes completadas</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-violet-50 shrink-0">
+                <TicketPercent className="h-5 w-5 text-violet-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tasa de completado */}
+        <Card className="border-l-4 border-l-teal-500">
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Tasa completado</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">
+                  {(metrics?.completionRate ?? 0).toFixed(1)}%
+                </p>
+                <p className="text-xs text-gray-400 mt-1">del mes actual</p>
+              </div>
+              <div className="p-2.5 rounded-xl bg-teal-50 shrink-0">
+                <CheckCircle className="h-5 w-5 text-teal-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Órdenes vencidas */}
+        <Card className={`border-l-4 ${(metrics?.overdueCount ?? 0) > 0 ? "border-l-red-500" : "border-l-gray-300"}`}>
+          <CardContent className="pt-5 pb-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Órdenes vencidas</p>
+                <p className={`text-xl font-bold mt-1 ${(metrics?.overdueCount ?? 0) > 0 ? "text-red-600" : "text-gray-900"}`}>
+                  {metrics?.overdueCount ?? 0}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">plazo superado</p>
+              </div>
+              <div className={`p-2.5 rounded-xl shrink-0 ${(metrics?.overdueCount ?? 0) > 0 ? "bg-red-50" : "bg-gray-50"}`}>
+                <AlertTriangle className={`h-5 w-5 ${(metrics?.overdueCount ?? 0) > 0 ? "text-red-500" : "text-gray-400"}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ── Tabla ── */}
+      {/* Charts row 1: Revenue + Orders bar charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue bar chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Ingresos últimos 6 meses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(metrics?.monthlyStats?.length ?? 0) === 0 ? (
+              <EmptyChart />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={metrics!.monthlyStats} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => "$" + (v as number).toLocaleString("es-AR")}
+                    width={70}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [fmt(value), "Ingresos"]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                  />
+                  <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Orders bar chart */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Órdenes últimos 6 meses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(metrics?.monthlyStats?.length ?? 0) === 0 ? (
+              <EmptyChart />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={metrics!.monthlyStats} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                    width={32}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [value, "Órdenes"]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                  />
+                  <Bar dataKey="orders" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts row 2: Pie by status + Mechanic horizontal bar */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Pie chart: orders by status */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Órdenes por estado</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pieData.length === 0 ? (
+              <EmptyChart />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry) => (
+                      <Cell key={entry.key} fill={STATUS_COLORS[entry.key] ?? "#94a3b8"} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number, _: string, props: { payload?: { name?: string } }) => [
+                      `${value} orden${value !== 1 ? "es" : ""}`,
+                      props.payload?.name ?? "",
+                    ]}
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    formatter={(value) => (
+                      <span style={{ fontSize: 12, color: "#374151" }}>{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Horizontal bar: mechanic performance */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Rendimiento por mecánico este mes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(metrics?.mechanicStats?.length ?? 0) === 0 ? (
+              <EmptyChart label="Sin datos este mes" />
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart
+                  layout="vertical"
+                  data={metrics!.mechanicStats}
+                  margin={{ top: 4, right: 16, left: 8, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 12, fill: "#374151" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={90}
+                  />
+                  <Tooltip
+                    formatter={(value: number, name: string) =>
+                      name === "orders"
+                        ? [`${value} orden${value !== 1 ? "es" : ""}`, "Órdenes"]
+                        : [fmt(value), "Ingresos"]
+                    }
+                    contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
+                  />
+                  <Bar dataKey="orders" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="orders" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Orders table */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">Órdenes de Servicio</CardTitle>
@@ -351,20 +532,38 @@ export default function DashboardPage() {
   );
 }
 
-function KpiCard({ icon, label, value, borderClass, iconBgClass }: {
-  icon: React.ReactNode; label: string; value: number; borderClass: string; iconBgClass: string;
-}) {
+// ── Helper components ──────────────────────────────────────────────────────────
+
+function DeltaBadge({ delta }: { delta: number | null }) {
+  if (delta === null) return <p className="text-xs text-gray-400 mt-1">sin datos previos</p>;
+  const up = delta >= 0;
   return (
-    <Card className={borderClass}>
-      <CardContent className="pt-5 pb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{label}</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-          </div>
-          <div className={`p-2.5 rounded-xl ${iconBgClass}`}>{icon}</div>
-        </div>
-      </CardContent>
-    </Card>
+    <p className={`text-xs mt-1 flex items-center gap-0.5 ${up ? "text-emerald-600" : "text-red-500"}`}>
+      {delta > 0
+        ? <TrendingUp className="h-3 w-3" />
+        : delta < 0
+        ? <TrendingDown className="h-3 w-3" />
+        : <Minus className="h-3 w-3" />}
+      {delta > 0 ? "+" : ""}{delta.toFixed(1)}% vs mes anterior
+    </p>
   );
 }
+
+function EmptyChart({ label = "Sin datos" }: { label?: string }) {
+  return (
+    <div className="flex items-center justify-center h-[240px] text-sm text-gray-400">
+      {label}
+    </div>
+  );
+}
+
+function statusLabel(status: string): string {
+  const map: Record<string, string> = {
+    Open: "Abiertas",
+    InProgress: "En progreso",
+    Completed: "Completadas",
+    Cancelled: "Canceladas",
+  };
+  return map[status] ?? status;
+}
+
