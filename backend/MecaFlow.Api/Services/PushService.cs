@@ -2,6 +2,7 @@ using WebPush;
 using TallerTotal.Api.Data;
 using TallerTotal.Api.Models;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace TallerTotal.Api.Services;
@@ -65,6 +66,22 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
         return (publicKey, privateKey, GetSubject());
     }
 
+    // ── Browser subscription JSON shape ─────────────────────────────────────────
+
+    private sealed class BrowserPushSubscription
+    {
+        public string Endpoint { get; set; } = string.Empty;
+        public BrowserPushKeys? Keys { get; set; }
+    }
+
+    private sealed class BrowserPushKeys
+    {
+        [JsonPropertyName("p256dh")]
+        public string? P256dh { get; set; }
+        [JsonPropertyName("auth")]
+        public string? Auth { get; set; }
+    }
+
     private string GetSubject() =>
         config["Push:VapidSubject"]
         ?? config["VAPID_SUBJECT"]
@@ -102,15 +119,26 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
             return surfaceErrors ? msg : null;
         }
 
-        PushSubscription? sub;
-        try { sub = JsonSerializer.Deserialize<PushSubscription>(mechanic.PushSubscriptionJson); }
+        // The browser stores the subscription as:
+        // { "endpoint": "...", "keys": { "p256dh": "...", "auth": "..." } }
+        // WebPush.PushSubscription has flat properties (Endpoint, P256DH, Auth),
+        // so we must deserialise into our own model first.
+        PushSubscription sub;
+        try
+        {
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var raw  = JsonSerializer.Deserialize<BrowserPushSubscription>(mechanic.PushSubscriptionJson, opts);
+            if (raw is null || string.IsNullOrWhiteSpace(raw.Endpoint))
+                return surfaceErrors ? "JSON de suscripción inválido o endpoint vacío." : null;
+
+            sub = new PushSubscription(raw.Endpoint, raw.Keys?.P256dh, raw.Keys?.Auth);
+        }
         catch (Exception ex)
         {
             var msg = $"JSON de suscripción inválido: {ex.Message}";
             logger.LogWarning("Invalid push subscription JSON for mechanic {Id}", mechanic.Id);
             return surfaceErrors ? msg : null;
         }
-        if (sub is null) return surfaceErrors ? "Suscripción nula después de deserializar." : null;
 
         var json         = JsonSerializer.Serialize(payload);
         var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
