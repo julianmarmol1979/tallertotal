@@ -63,7 +63,11 @@ public class ServiceOrdersController(
             var to = dateTo.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             query = query.Where(o => o.CreatedAt < to);
         }
-        return await query.OrderByDescending(o => o.CreatedAt).Select(o => MapToDto(o)).ToListAsync();
+        // Materialise entities first so EF Core honours the .Include(o => o.Items);
+        // using .Select(MapToDto) inside the query causes EF Core to ignore the Include,
+        // returning empty Items collections and breaking the totalEstimate in the edit dialog.
+        var entities = await query.OrderByDescending(o => o.CreatedAt).ToListAsync();
+        return entities.Select(MapToDto);
     }
 
     [HttpGet("{id:guid}")]
