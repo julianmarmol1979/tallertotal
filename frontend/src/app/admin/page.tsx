@@ -453,6 +453,10 @@ function WhatsAppCard() {
 function PushCard() {
   const [status, setStatus] = useState<PushStatusResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [pubKey, setPubKey] = useState("");
+  const [privKey, setPrivKey] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -462,6 +466,26 @@ function PushCard() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleSave = async () => {
+    if (!pubKey.trim() || !privKey.trim()) {
+      toast.error("Ambas claves son requeridas");
+      return;
+    }
+    setSaving(true);
+    try {
+      await adminApi.setVapidKeys(pubKey.trim(), privKey.trim());
+      toast.success("Claves VAPID guardadas en la base de datos ✓");
+      setPubKey("");
+      setPrivKey("");
+      setShowForm(false);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Card>
@@ -481,40 +505,70 @@ function PushCard() {
           <p className="text-xs text-gray-400">Verificando…</p>
         ) : status ? (
           <>
-            <div className="flex items-center gap-2">
+            {/* Status badge */}
+            <div className="flex items-center gap-2 flex-wrap">
               {status.isConfigured
                 ? <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">✅ Configurado</Badge>
                 : <Badge variant="destructive" className="text-xs">❌ No configurado</Badge>}
               {status.publicKeyPreview && (
                 <span className="text-gray-400 font-mono text-xs">{status.publicKeyPreview}</span>
               )}
+              {status.source === "database" && (
+                <span className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5">DB</span>
+              )}
             </div>
 
-            {/* Diagnostic: what the backend actually sees */}
-            {(status.foundInEnv?.length ?? 0) > 0 || (status.foundInConfig?.length ?? 0) > 0 ? (
-              <div className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 space-y-1">
-                <p className="font-semibold text-gray-600">Variables detectadas por el backend:</p>
-                {(status.foundInConfig ?? []).map((k) => (
-                  <p key={k} className="font-mono text-gray-500">config[{k}] ✓</p>
-                ))}
-                {(status.foundInEnv ?? []).map((k) => (
-                  <p key={k} className="font-mono text-gray-500">env[{k}] ✓</p>
-                ))}
+            {/* Configure form */}
+            {!showForm ? (
+              <Button
+                size="sm" variant="outline"
+                onClick={() => setShowForm(true)}
+                className="h-7 text-xs gap-1"
+              >
+                <Plus className="h-3 w-3" />
+                {status.isConfigured ? "Actualizar claves" : "Configurar claves VAPID"}
+              </Button>
+            ) : (
+              <div className="space-y-3 border border-gray-200 rounded-xl p-3 bg-gray-50">
+                <p className="text-xs text-gray-500 font-medium">
+                  Las claves se guardan en la base de datos (no dependen de Railway).
+                </p>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Public Key (VAPID)</Label>
+                  <Input
+                    value={pubKey}
+                    onChange={(e) => setPubKey(e.target.value)}
+                    placeholder="BPxxxxxx…"
+                    className="text-xs font-mono h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Private Key (VAPID)</Label>
+                  <Input
+                    value={privKey}
+                    onChange={(e) => setPrivKey(e.target.value)}
+                    placeholder="xxxxxxxx…"
+                    className="text-xs font-mono h-8"
+                    type="password"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleSave} disabled={saving} className="h-7 text-xs">
+                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Guardar"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { setShowForm(false); setPubKey(""); setPrivKey(""); }} className="h-7 text-xs">
+                    Cancelar
+                  </Button>
+                </div>
               </div>
-            ) : !status.isConfigured ? (
-              <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-700 space-y-1">
-                <p className="font-semibold">El backend no encuentra ninguna variable VAPID.</p>
-                <p>Agregá en Railway (nombre simple, sin puntos ni guiones dobles):</p>
-                <p className="font-mono">VAPID_PUBLIC_KEY</p>
-                <p className="font-mono">VAPID_PRIVATE_KEY</p>
-              </div>
-            ) : null}
+            )}
 
+            {/* Once configured: Vercel hint */}
             {status.isConfigured && (
               <div className="text-xs bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-blue-700 space-y-1">
-                <p className="font-semibold">También verificar en Vercel:</p>
-                <p><span className="font-mono">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> debe coincidir con la public key de Railway.</p>
-                <p className="text-blue-600">Si cambiaste la clave, reactivar notificaciones desde el link del mecánico.</p>
+                <p className="font-semibold">⚠️ Verificar en Vercel:</p>
+                <p><span className="font-mono">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> debe coincidir con la Public Key guardada.</p>
+                <p className="text-blue-600">Después de configurar: reactivar notificaciones desde el link del mecánico.</p>
               </div>
             )}
           </>

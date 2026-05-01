@@ -9,3 +9,5 @@ public record CreateUserRequest(string Username, string Password, string Role = 
 public record UserResponse(Guid Id, string Username, string Role, DateTime CreatedAt);
 
 public record WhatsAppTestRequest(string Phone, string? Message);
+
+public record SetVapidKeysRequest(string PublicKey, string PrivateKey);

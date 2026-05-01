@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ServiceItem> ServiceItems => Set<ServiceItem>();
     public DbSet<ServiceOrderLog> ServiceOrderLogs => Set<ServiceOrderLog>();
     public DbSet<Mechanic> Mechanics => Set<Mechanic>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,6 +100,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .WithMany(x => x.Mechanics)
                 .HasForeignKey(x => x.TenantId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AppSetting>(e =>
+        {
+            e.HasKey(x => x.Key);
+            e.Property(x => x.Key).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Value).HasMaxLength(2000).IsRequired();
         });
 
         modelBuilder.Entity<ServiceItem>(e =>

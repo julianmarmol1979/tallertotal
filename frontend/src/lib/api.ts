@@ -174,6 +174,11 @@ export const adminApi = {
       body: JSON.stringify({ phone, message }),
     }),
   getPushStatus: () => request<PushStatusResponse>("/admin/push/status"),
+  setVapidKeys: (publicKey: string, privateKey: string) =>
+    request<{ ok: boolean }>("/admin/push/vapid", {
+      method: "PUT",
+      body: JSON.stringify({ publicKey, privateKey }),
+    }),
 };
 
 // Admin types
@@ -210,6 +215,7 @@ export interface WhatsAppQrResponse {
 export interface PushStatusResponse {
   isConfigured: boolean;
   publicKeyPreview?: string;
+  source?: "database" | "env";
   foundInConfig?: string[];
   foundInEnv?: string[];
 }

@@ -1,10 +1,12 @@
 using WebPush;
+using TallerTotal.Api.Data;
 using TallerTotal.Api.Models;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace TallerTotal.Api.Services;
 
-public class PushService(IConfiguration config, ILogger<PushService> logger) : IPushService
+public class PushService(IConfiguration config, ILogger<PushService> logger, AppDbContext db) : IPushService
 {
     private static readonly Dictionary<ServiceOrderStatus, string> StatusLabels = new()
     {
@@ -37,11 +39,20 @@ public class PushService(IConfiguration config, ILogger<PushService> logger) : I
         });
     }
 
-    private async Task Send(Mechanic mechanic, object payload)
+    /// <summary>
+    /// Reads VAPID keys: DB takes priority over env vars / appsettings.
+    /// This lets admins configure keys via the admin panel without needing
+    /// Railway environment variables to work.
+    /// </summary>
+    private async Task<(string? publicKey, string? privateKey, string subject)> GetVapidKeysAsync()
     {
-        if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson)) return;
+        // 1. Try database (set via admin panel)
+        var dbPublic  = await db.AppSettings.Where(s => s.Key == "Vapid:PublicKey").Select(s => s.Value).FirstOrDefaultAsync();
+        var dbPrivate = await db.AppSettings.Where(s => s.Key == "Vapid:PrivateKey").Select(s => s.Value).FirstOrDefaultAsync();
+        if (!string.IsNullOrWhiteSpace(dbPublic) && !string.IsNullOrWhiteSpace(dbPrivate))
+            return (dbPublic, dbPrivate, GetSubject());
 
-        // Try multiple naming conventions Railway may use
+        // 2. Fall back to config / env vars (multiple naming conventions for Railway compatibility)
         var publicKey  = config["Push:VapidPublicKey"]
             ?? config["VAPID_PUBLIC_KEY"]
             ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey")
@@ -50,11 +61,22 @@ public class PushService(IConfiguration config, ILogger<PushService> logger) : I
             ?? config["VAPID_PRIVATE_KEY"]
             ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey")
             ?? Environment.GetEnvironmentVariable("VAPID_PRIVATE_KEY");
-        var subject    = config["Push:VapidSubject"]
-            ?? config["VAPID_SUBJECT"]
-            ?? Environment.GetEnvironmentVariable("Push__VapidSubject")
-            ?? Environment.GetEnvironmentVariable("VAPID_SUBJECT")
-            ?? "mailto:admin@tallertotal.app";
+
+        return (publicKey, privateKey, GetSubject());
+    }
+
+    private string GetSubject() =>
+        config["Push:VapidSubject"]
+        ?? config["VAPID_SUBJECT"]
+        ?? Environment.GetEnvironmentVariable("Push__VapidSubject")
+        ?? Environment.GetEnvironmentVariable("VAPID_SUBJECT")
+        ?? "mailto:admin@tallertotal.app";
+
+    private async Task Send(Mechanic mechanic, object payload)
+    {
+        if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson)) return;
+
+        var (publicKey, privateKey, subject) = await GetVapidKeysAsync();
 
         if (string.IsNullOrWhiteSpace(publicKey) || string.IsNullOrWhiteSpace(privateKey))
         {
