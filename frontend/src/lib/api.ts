@@ -214,8 +214,7 @@ export interface WhatsAppQrResponse {
 
 export interface PushStatusResponse {
   isConfigured: boolean;
+  publicKey?: string;
   publicKeyPreview?: string;
   source?: "database" | "env";
-  foundInConfig?: string[];
-  foundInEnv?: string[];
 }

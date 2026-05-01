@@ -28,8 +28,10 @@ async function registerAndSubscribe(vapidKey: string): Promise<PushSubscription>
   const reg = await navigator.serviceWorker.register("/sw.js");
   await navigator.serviceWorker.ready;
 
+  // Always unsubscribe first so the new subscription uses the current VAPID key.
+  // Reusing an old subscription silently fails if the key changed.
   const existing = await reg.pushManager.getSubscription();
-  if (existing) return existing;
+  if (existing) await existing.unsubscribe();
 
   return reg.pushManager.subscribe({
     userVisibleOnly: true,

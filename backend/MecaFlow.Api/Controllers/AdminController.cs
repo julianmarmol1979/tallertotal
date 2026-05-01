@@ -62,15 +62,9 @@ public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfig
         return Ok(new
         {
             isConfigured     = !string.IsNullOrWhiteSpace(publicKey) && !string.IsNullOrWhiteSpace(privateKey),
+            publicKey        = publicKey,          // full public key — safe to expose (it's public)
             publicKeyPreview = string.IsNullOrWhiteSpace(publicKey) ? null : publicKey[..Math.Min(12, publicKey.Length)] + "…",
             source,
-            // kept for diagnostics
-            foundInConfig    = new[] { "Push:VapidPublicKey", "VAPID_PUBLIC_KEY" }
-                                    .Where(k => !string.IsNullOrWhiteSpace(config[k])).ToList(),
-            foundInEnv       = Environment.GetEnvironmentVariables().Keys.Cast<string>()
-                                    .Where(k => k.Contains("VAPID", StringComparison.OrdinalIgnoreCase)
-                                             || k.Contains("Push", StringComparison.OrdinalIgnoreCase))
-                                    .OrderBy(k => k).ToList(),
         });
     }
 

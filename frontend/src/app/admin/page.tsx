@@ -563,12 +563,39 @@ function PushCard() {
               </div>
             )}
 
-            {/* Once configured: Vercel hint */}
-            {status.isConfigured && (
-              <div className="text-xs bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-blue-700 space-y-1">
-                <p className="font-semibold">⚠️ Verificar en Vercel:</p>
-                <p><span className="font-mono">NEXT_PUBLIC_VAPID_PUBLIC_KEY</span> debe coincidir con la Public Key guardada.</p>
-                <p className="text-blue-600">Después de configurar: reactivar notificaciones desde el link del mecánico.</p>
+            {/* Once configured: public key + step-by-step */}
+            {status.isConfigured && status.publicKey && (
+              <div className="space-y-3 border-t pt-3">
+                {/* Public key copy */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-gray-600">Public Key (copiar a Vercel):</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-[10px] font-mono bg-gray-100 rounded px-2 py-1.5 break-all text-gray-700 leading-relaxed">
+                      {status.publicKey}
+                    </code>
+                    <Button
+                      size="sm" variant="outline"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(status.publicKey!);
+                        toast.success("Public Key copiada");
+                      }}
+                    >
+                      Copiar
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Steps */}
+                <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-amber-800 space-y-1.5">
+                  <p className="font-semibold">Pasos para que lleguen los push:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-amber-700">
+                    <li>En <strong>Vercel</strong> → Settings → Environment Variables</li>
+                    <li>Actualizar <code className="font-mono bg-amber-100 px-0.5 rounded">NEXT_PUBLIC_VAPID_PUBLIC_KEY</code> con la key de arriba</li>
+                    <li>Hacer <strong>Redeploy</strong> en Vercel (para que tome la nueva key)</li>
+                    <li>Mecánico: <strong>Desactivar</strong> notificaciones y luego <strong>Activar</strong> de nuevo</li>
+                  </ol>
+                </div>
               </div>
             )}
           </>
