@@ -44,8 +44,9 @@ builder.Services.AddHostedService<WhatsAppReminderService>();
 builder.Services.AddHttpClient("resend");
 builder.Services.AddScoped<IEmailService, ResendEmailService>();
 
-// Web Push for mechanic notifications
-builder.Services.AddScoped<IPushService, PushService>();
+// Web Push — Singleton so it survives beyond HTTP request scopes (needed for fire-and-forget sends)
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IPushService, PushService>();
 
 var allowedOrigins = (builder.Configuration["AllowedOrigins"] ?? "http://localhost:3000")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

@@ -12,7 +12,7 @@ namespace TallerTotal.Api.Controllers;
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = "SuperAdmin")]
-public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfiguration config, IPushService push) : ControllerBase
+public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfiguration config, IPushService push, IMemoryCache cache) : ControllerBase
 {
     // GET /api/admin/whatsapp/status
     [HttpGet("whatsapp/status")]
@@ -109,6 +109,9 @@ public class AdminController(AppDbContext db, IWhatsAppService whatsApp, IConfig
         await UpsertSetting("Vapid:PublicKey",  req.PublicKey.Trim());
         await UpsertSetting("Vapid:PrivateKey", req.PrivateKey.Trim());
         await db.SaveChangesAsync();
+
+        // Invalidate the in-memory VAPID key cache so PushService picks up new keys immediately
+        cache.Remove("vapid:keys");
 
         return Ok(new { ok = true });
     }

@@ -4,10 +4,20 @@ using TallerTotal.Api.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace TallerTotal.Api.Services;
 
-public class PushService(IConfiguration config, ILogger<PushService> logger, AppDbContext db) : IPushService
+/// <summary>
+/// Registered as Singleton so it survives beyond individual HTTP request scopes.
+/// Uses IServiceScopeFactory to open its own DB scope when needed, avoiding
+/// ObjectDisposedException in fire-and-forget push calls.
+/// </summary>
+public class PushService(
+    IConfiguration config,
+    ILogger<PushService> logger,
+    IServiceScopeFactory scopeFactory,
+    IMemoryCache cache) : IPushService
 {
     private static readonly Dictionary<ServiceOrderStatus, string> StatusLabels = new()
     {
@@ -30,8 +40,8 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
 
     public Task SendStatusChangedAsync(Mechanic mechanic, ServiceOrder order, ServiceOrderStatus newStatus)
     {
-        var orderNum   = order.Id.ToString()[^8..].ToUpper();
-        var label      = StatusLabels.GetValueOrDefault(newStatus, newStatus.ToString());
+        var orderNum = order.Id.ToString()[^8..].ToUpper();
+        var label    = StatusLabels.GetValueOrDefault(newStatus, newStatus.ToString());
         return Send(mechanic, new
         {
             title = $"Orden actualizada — {label}",
@@ -39,55 +49,6 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
             url   = "/ordenes",
         });
     }
-
-    /// <summary>
-    /// Reads VAPID keys: DB takes priority over env vars / appsettings.
-    /// This lets admins configure keys via the admin panel without needing
-    /// Railway environment variables to work.
-    /// </summary>
-    private async Task<(string? publicKey, string? privateKey, string subject)> GetVapidKeysAsync()
-    {
-        // 1. Try database (set via admin panel)
-        var dbPublic  = await db.AppSettings.Where(s => s.Key == "Vapid:PublicKey").Select(s => s.Value).FirstOrDefaultAsync();
-        var dbPrivate = await db.AppSettings.Where(s => s.Key == "Vapid:PrivateKey").Select(s => s.Value).FirstOrDefaultAsync();
-        if (!string.IsNullOrWhiteSpace(dbPublic) && !string.IsNullOrWhiteSpace(dbPrivate))
-            return (dbPublic, dbPrivate, GetSubject());
-
-        // 2. Fall back to config / env vars (multiple naming conventions for Railway compatibility)
-        var publicKey  = config["Push:VapidPublicKey"]
-            ?? config["VAPID_PUBLIC_KEY"]
-            ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey")
-            ?? Environment.GetEnvironmentVariable("VAPID_PUBLIC_KEY");
-        var privateKey = config["Push:VapidPrivateKey"]
-            ?? config["VAPID_PRIVATE_KEY"]
-            ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey")
-            ?? Environment.GetEnvironmentVariable("VAPID_PRIVATE_KEY");
-
-        return (publicKey, privateKey, GetSubject());
-    }
-
-    // ── Browser subscription JSON shape ─────────────────────────────────────────
-
-    private sealed class BrowserPushSubscription
-    {
-        public string Endpoint { get; set; } = string.Empty;
-        public BrowserPushKeys? Keys { get; set; }
-    }
-
-    private sealed class BrowserPushKeys
-    {
-        [JsonPropertyName("p256dh")]
-        public string? P256dh { get; set; }
-        [JsonPropertyName("auth")]
-        public string? Auth { get; set; }
-    }
-
-    private string GetSubject() =>
-        config["Push:VapidSubject"]
-        ?? config["VAPID_SUBJECT"]
-        ?? Environment.GetEnvironmentVariable("Push__VapidSubject")
-        ?? Environment.GetEnvironmentVariable("VAPID_SUBJECT")
-        ?? "mailto:admin@tallertotal.app";
 
     public Task<string?> TestAsync(Mechanic mechanic) =>
         SendInternal(mechanic, new
@@ -97,14 +58,11 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
             url   = "/ordenes",
         }, surfaceErrors: true);
 
+    // ── Internal ──────────────────────────────────────────────────────────────
+
     private Task Send(Mechanic mechanic, object payload) =>
         SendInternal(mechanic, payload, surfaceErrors: false).ContinueWith(_ => { });
 
-    /// <summary>
-    /// Core send logic.
-    /// surfaceErrors=true  → throws / returns error string (used by TestAsync)
-    /// surfaceErrors=false → swallows errors, only logs (fire-and-forget callers)
-    /// </summary>
     private async Task<string?> SendInternal(Mechanic mechanic, object payload, bool surfaceErrors)
     {
         if (string.IsNullOrWhiteSpace(mechanic.PushSubscriptionJson))
@@ -114,18 +72,16 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
 
         if (string.IsNullOrWhiteSpace(publicKey) || string.IsNullOrWhiteSpace(privateKey))
         {
-            const string msg = "Claves VAPID no configuradas.";
             logger.LogWarning("Push VAPID keys not configured — skipping push to mechanic {Name}", mechanic.Name);
-            return surfaceErrors ? msg : null;
+            return surfaceErrors ? "Claves VAPID no configuradas." : null;
         }
 
-        // The browser stores the subscription as:
-        // { "endpoint": "...", "keys": { "p256dh": "...", "auth": "..." } }
-        // WebPush.PushSubscription has flat properties (Endpoint, P256DH, Auth),
-        // so we must deserialise into our own model first.
         PushSubscription sub;
         try
         {
+            // The browser serialises the subscription as:
+            //   { "endpoint": "...", "keys": { "p256dh": "...", "auth": "..." } }
+            // WebPush.PushSubscription expects flat properties, so map manually.
             var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var raw  = JsonSerializer.Deserialize<BrowserPushSubscription>(mechanic.PushSubscriptionJson, opts);
             if (raw is null || string.IsNullOrWhiteSpace(raw.Endpoint))
@@ -135,9 +91,8 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
         }
         catch (Exception ex)
         {
-            var msg = $"JSON de suscripción inválido: {ex.Message}";
             logger.LogWarning("Invalid push subscription JSON for mechanic {Id}", mechanic.Id);
-            return surfaceErrors ? msg : null;
+            return surfaceErrors ? $"JSON de suscripción inválido: {ex.Message}" : null;
         }
 
         var json         = JsonSerializer.Serialize(payload);
@@ -151,9 +106,10 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
         }
         catch (WebPushException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone)
         {
+            // Subscription expired — clear it in DB using its own scope
             logger.LogInformation("Push subscription expired for mechanic {Id} — clearing", mechanic.Id);
-            mechanic.PushSubscriptionJson = null;
-            return surfaceErrors ? $"Suscripción expirada (410 Gone) — el mecánico debe reactivar push." : null;
+            _ = ClearSubscriptionAsync(mechanic.Id);
+            return surfaceErrors ? "Suscripción expirada (410 Gone) — el mecánico debe reactivar push." : null;
         }
         catch (WebPushException ex)
         {
@@ -167,5 +123,78 @@ public class PushService(IConfiguration config, ILogger<PushService> logger, App
             logger.LogError(ex, "Failed to send push to mechanic {Id}", mechanic.Id);
             return surfaceErrors ? msg : null;
         }
+    }
+
+    /// <summary>
+    /// Reads VAPID keys from cache → DB → env/config (in that order).
+    /// Opens its own DB scope so it is safe to call from fire-and-forget tasks.
+    /// </summary>
+    private async Task<(string? publicKey, string? privateKey, string subject)> GetVapidKeysAsync()
+    {
+        const string CacheKey = "vapid:keys";
+
+        if (cache.TryGetValue(CacheKey, out (string pub, string priv) hit))
+            return (hit.pub, hit.priv, GetSubject());
+
+        // Open a fresh scope — safe even when called from fire-and-forget
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var dbPublic  = await db.AppSettings.Where(s => s.Key == "Vapid:PublicKey") .Select(s => s.Value).FirstOrDefaultAsync();
+        var dbPrivate = await db.AppSettings.Where(s => s.Key == "Vapid:PrivateKey").Select(s => s.Value).FirstOrDefaultAsync();
+
+        if (!string.IsNullOrWhiteSpace(dbPublic) && !string.IsNullOrWhiteSpace(dbPrivate))
+        {
+            cache.Set(CacheKey, (dbPublic, dbPrivate), TimeSpan.FromMinutes(10));
+            return (dbPublic, dbPrivate, GetSubject());
+        }
+
+        // Fall back to config / env vars
+        var publicKey  = config["Push:VapidPublicKey"]  ?? config["VAPID_PUBLIC_KEY"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPublicKey")
+            ?? Environment.GetEnvironmentVariable("VAPID_PUBLIC_KEY");
+        var privateKey = config["Push:VapidPrivateKey"] ?? config["VAPID_PRIVATE_KEY"]
+            ?? Environment.GetEnvironmentVariable("Push__VapidPrivateKey")
+            ?? Environment.GetEnvironmentVariable("VAPID_PRIVATE_KEY");
+
+        return (publicKey, privateKey, GetSubject());
+    }
+
+    private string GetSubject() =>
+        config["Push:VapidSubject"]
+        ?? config["VAPID_SUBJECT"]
+        ?? Environment.GetEnvironmentVariable("Push__VapidSubject")
+        ?? Environment.GetEnvironmentVariable("VAPID_SUBJECT")
+        ?? "mailto:admin@tallertotal.app";
+
+    private async Task ClearSubscriptionAsync(Guid mechanicId)
+    {
+        try
+        {
+            using var scope    = scopeFactory.CreateScope();
+            var db             = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var mechanic       = await db.Mechanics.FindAsync(mechanicId);
+            if (mechanic is null) return;
+            mechanic.PushSubscriptionJson = null;
+            await db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to clear expired push subscription for mechanic {Id}", mechanicId);
+        }
+    }
+
+    // ── Browser subscription JSON shape ──────────────────────────────────────
+
+    private sealed class BrowserPushSubscription
+    {
+        public string Endpoint { get; set; } = string.Empty;
+        public BrowserPushKeys? Keys { get; set; }
+    }
+
+    private sealed class BrowserPushKeys
+    {
+        [JsonPropertyName("p256dh")] public string? P256dh { get; set; }
+        [JsonPropertyName("auth")]   public string? Auth   { get; set; }
     }
 }
