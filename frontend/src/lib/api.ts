@@ -112,6 +112,8 @@ export const serviceOrdersApi = {
     }),
   getLogs: (id: string) =>
     request<ServiceOrderLog[]>(`/serviceorders/${id}/logs`),
+  generatePaymentLink: (id: string) =>
+    request<{ url: string }>(`/serviceorders/${id}/payment-link`, { method: "POST" }),
 };
 
 // Dashboard

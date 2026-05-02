@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import {
   Plus, FileSpreadsheet, Download, ChevronUp, ChevronDown, ChevronsUpDown,
   Printer, FileText, CheckCircle, XCircle, History, Link2, Pencil, Trash2,
+  CreditCard, Copy,
 } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import { toast } from "sonner";
@@ -359,6 +360,9 @@ export default function OrdenesPage() {
   const [logs, setLogs] = useState<ServiceOrderLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
 
+  // Payment link
+  const [generatingPayment, setGeneratingPayment] = useState<Set<string>>(new Set());
+
   const load = useCallback(async () => {
     setLoading(true);
     setSelected(new Set());
@@ -420,6 +424,37 @@ export default function OrdenesPage() {
     } finally {
       setLogsLoading(false);
     }
+  };
+
+  const handlePaymentLink = async (order: ServiceOrder) => {
+    // If link already exists, just copy it
+    if (order.mpPaymentLinkUrl) {
+      navigator.clipboard.writeText(order.mpPaymentLinkUrl);
+      toast.success("Link de pago copiado al portapapeles");
+      return;
+    }
+    setGeneratingPayment((prev) => new Set([...prev, order.id]));
+    try {
+      const { url } = await serviceOrdersApi.generatePaymentLink(order.id);
+      // Update the order in local state so the button changes immediately
+      setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, mpPaymentLinkUrl: url } : o));
+      navigator.clipboard.writeText(url);
+      toast.success("Link de pago generado y copiado al portapapeles 💳");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error al generar link";
+      toast.error(msg.length > 200 ? msg.slice(0, 200) + "…" : msg);
+    } finally {
+      setGeneratingPayment((prev) => { const next = new Set(prev); next.delete(order.id); return next; });
+    }
+  };
+
+  const handlePaymentWhatsApp = (order: ServiceOrder) => {
+    if (!order.mpPaymentLinkUrl) return;
+    const orderNum = order.id.slice(-8).toUpperCase();
+    const msg = encodeURIComponent(
+      `💳 Link de pago para la orden #${orderNum} — ${order.vehicleDescription}:\n${order.mpPaymentLinkUrl}`
+    );
+    window.open(`https://wa.me/${order.customerPhone.replace(/\D/g, "")}?text=${msg}`, "_blank");
   };
 
   const handleSort = (col: SortCol) => {
@@ -735,6 +770,26 @@ export default function OrdenesPage() {
                               className="text-gray-400 hover:text-green-600">
                               <Download className="h-3.5 w-3.5" />
                             </Button>
+                            {/* Link de pago MP — solo para órdenes completadas */}
+                            {order.status === "Completed" && (
+                              <>
+                                <Button variant="ghost" size="icon-sm"
+                                  title={order.mpPaymentLinkUrl ? "Copiar link de pago (Mercado Pago)" : "Generar link de pago (Mercado Pago)"}
+                                  onClick={() => handlePaymentLink(order)}
+                                  disabled={generatingPayment.has(order.id)}
+                                  className={order.mpPaymentLinkUrl ? "text-blue-500 hover:text-blue-700" : "text-gray-400 hover:text-blue-600"}>
+                                  {order.mpPaymentLinkUrl ? <Copy className="h-3.5 w-3.5" /> : <CreditCard className="h-3.5 w-3.5" />}
+                                </Button>
+                                {order.mpPaymentLinkUrl && (
+                                  <Button variant="ghost" size="icon-sm"
+                                    title="Enviar link de pago por WhatsApp"
+                                    onClick={() => handlePaymentWhatsApp(order)}
+                                    className="text-gray-400 hover:text-green-600">
+                                    <span className="text-[11px] font-bold leading-none">WA</span>
+                                  </Button>
+                                )}
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>

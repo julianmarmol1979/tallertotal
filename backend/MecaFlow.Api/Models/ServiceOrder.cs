@@ -20,6 +20,9 @@ public class ServiceOrder
 
     public Guid PortalToken { get; set; } = Guid.NewGuid();
 
+    /// <summary>Mercado Pago Checkout Pro init_point URL, set when a payment link is generated.</summary>
+    public string? MpPaymentLinkUrl { get; set; }
+
     public Vehicle Vehicle { get; set; } = null!;
     public ICollection<ServiceItem> Items { get; set; } = [];
     public ICollection<ServiceOrderLog> Logs { get; set; } = [];

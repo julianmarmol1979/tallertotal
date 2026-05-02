@@ -61,7 +61,8 @@ public record ServiceOrderDto(
     List<ServiceItemDto> Items,
     QuoteStatus QuoteStatus,
     DateTime LastActivityAt,
-    Guid PortalToken
+    Guid PortalToken,
+    string? MpPaymentLinkUrl
 );
 
 // Public portal DTO — no sensitive internal data

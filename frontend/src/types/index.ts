@@ -53,6 +53,7 @@ export interface ServiceOrder {
   lastActivityAt: string;
   items: ServiceItem[];
   portalToken: string;
+  mpPaymentLinkUrl?: string;
 }
 
 // Lean read-only view exposed to the customer via /portal/[token]

@@ -15,7 +15,8 @@ public class ServiceOrdersController(
     AppDbContext db,
     IWhatsAppService whatsApp,
     IEmailService email,
-    IPushService push) : ControllerBase
+    IPushService push,
+    IMercadoPagoService mercadoPago) : ControllerBase
 {
     private Guid TenantId => Guid.Parse(User.FindFirst("tenantId")!.Value);
     private string CurrentUser => User.Identity?.Name ?? "unknown";
@@ -28,7 +29,7 @@ public class ServiceOrdersController(
         o.InternalNotes, o.EstimatedDeliveryAt,
         o.TotalEstimate, o.TotalFinal, o.CreatedAt, o.CompletedAt,
         o.Items.Select(i => new ServiceItemDto(i.Id, i.Description, i.Type, i.Quantity, i.UnitPrice, i.Total)).ToList(),
-        o.QuoteStatus, o.LastActivityAt, o.PortalToken
+        o.QuoteStatus, o.LastActivityAt, o.PortalToken, o.MpPaymentLinkUrl
     );
 
     private IQueryable<ServiceOrder> BaseQuery() =>
@@ -254,6 +255,30 @@ public class ServiceOrdersController(
         }
 
         return MapToDto(order);
+    }
+
+    // POST /api/serviceorders/{id}/payment-link
+    // Generates (or regenerates) a Mercado Pago Checkout Pro link for the order.
+    [HttpPost("{id:guid}/payment-link")]
+    public async Task<IActionResult> GeneratePaymentLink(Guid id)
+    {
+        if (!mercadoPago.IsConfigured)
+            return BadRequest(new { error = "Mercado Pago no está configurado (falta MP_ACCESS_TOKEN)." });
+
+        var order = await BaseQuery().FirstOrDefaultAsync(o => o.Id == id);
+        if (order is null) return NotFound();
+
+        try
+        {
+            var url = await mercadoPago.CreatePaymentLinkAsync(order);
+            order.MpPaymentLinkUrl = url;
+            await db.SaveChangesAsync();
+            return Ok(new { url });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

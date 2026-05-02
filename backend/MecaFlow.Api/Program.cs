@@ -44,6 +44,10 @@ builder.Services.AddHostedService<WhatsAppReminderService>();
 builder.Services.AddHttpClient("resend");
 builder.Services.AddScoped<IEmailService, ResendEmailService>();
 
+// Mercado Pago (Checkout Pro) — requires MP_ACCESS_TOKEN env var in Railway
+builder.Services.AddHttpClient("mercadopago");
+builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
+
 // Web Push — Singleton so it survives beyond HTTP request scopes (needed for fire-and-forget sends)
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPushService, PushService>();
