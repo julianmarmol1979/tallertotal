@@ -249,7 +249,8 @@ export default function DashboardPage() {
                     width={70}
                   />
                   <Tooltip
-                    formatter={(value: number | undefined) => [fmt(value ?? 0), "Ingresos"]}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any) => [fmt(Number(value) || 0), "Ingresos"]}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -280,7 +281,8 @@ export default function DashboardPage() {
                     width={32}
                   />
                   <Tooltip
-                    formatter={(value: number | undefined) => [value ?? 0, "Órdenes"]}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any) => [Number(value) || 0, "Órdenes"]}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Bar dataKey="orders" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -318,9 +320,10 @@ export default function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number | undefined, _: string, props: { payload?: { name?: string } }) => {
-                      const v = value ?? 0;
-                      return [`${v} orden${v !== 1 ? "es" : ""}`, props.payload?.name ?? ""];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, _: any, props: any) => {
+                      const v = Number(value) || 0;
+                      return [`${v} orden${v !== 1 ? "es" : ""}`, props?.payload?.name ?? ""];
                     }}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
@@ -369,8 +372,9 @@ export default function DashboardPage() {
                     width={90}
                   />
                   <Tooltip
-                    formatter={(value: number | undefined, name: string) => {
-                      const v = value ?? 0;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, name: any) => {
+                      const v = Number(value) || 0;
                       return name === "orders"
                         ? [`${v} orden${v !== 1 ? "es" : ""}`, "Órdenes"]
                         : [fmt(v), "Ingresos"];
