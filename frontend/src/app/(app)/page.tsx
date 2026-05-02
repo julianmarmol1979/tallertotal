@@ -249,7 +249,7 @@ export default function DashboardPage() {
                     width={70}
                   />
                   <Tooltip
-                    formatter={(value: number) => [fmt(value), "Ingresos"]}
+                    formatter={(value: number | undefined) => [fmt(value ?? 0), "Ingresos"]}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -280,7 +280,7 @@ export default function DashboardPage() {
                     width={32}
                   />
                   <Tooltip
-                    formatter={(value: number) => [value, "Órdenes"]}
+                    formatter={(value: number | undefined) => [value ?? 0, "Órdenes"]}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Bar dataKey="orders" fill="#3b82f6" radius={[4, 4, 0, 0]} />
@@ -318,10 +318,10 @@ export default function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number, _: string, props: { payload?: { name?: string } }) => [
-                      `${value} orden${value !== 1 ? "es" : ""}`,
-                      props.payload?.name ?? "",
-                    ]}
+                    formatter={(value: number | undefined, _: string, props: { payload?: { name?: string } }) => {
+                      const v = value ?? 0;
+                      return [`${v} orden${v !== 1 ? "es" : ""}`, props.payload?.name ?? ""];
+                    }}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Legend
@@ -369,11 +369,12 @@ export default function DashboardPage() {
                     width={90}
                   />
                   <Tooltip
-                    formatter={(value: number, name: string) =>
-                      name === "orders"
-                        ? [`${value} orden${value !== 1 ? "es" : ""}`, "Órdenes"]
-                        : [fmt(value), "Ingresos"]
-                    }
+                    formatter={(value: number | undefined, name: string) => {
+                      const v = value ?? 0;
+                      return name === "orders"
+                        ? [`${v} orden${v !== 1 ? "es" : ""}`, "Órdenes"]
+                        : [fmt(v), "Ingresos"];
+                    }}
                     contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb" }}
                   />
                   <Bar dataKey="orders" fill="#8b5cf6" radius={[0, 4, 4, 0]} name="orders" />
