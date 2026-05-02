@@ -448,15 +448,6 @@ export default function OrdenesPage() {
     }
   };
 
-  const handlePaymentWhatsApp = (order: ServiceOrder) => {
-    if (!order.mpPaymentLinkUrl) return;
-    const orderNum = order.id.slice(-8).toUpperCase();
-    const msg = encodeURIComponent(
-      `💳 Link de pago para la orden #${orderNum} — ${order.vehicleDescription}:\n${order.mpPaymentLinkUrl}`
-    );
-    window.open(`https://wa.me/${order.customerPhone.replace(/\D/g, "")}?text=${msg}`, "_blank");
-  };
-
   const handleSort = (col: SortCol) => {
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortCol(col); setSortDir("asc"); }
@@ -772,23 +763,15 @@ export default function OrdenesPage() {
                             </Button>
                             {/* Link de pago MP — solo para órdenes completadas */}
                             {order.status === "Completed" && (
-                              <>
-                                <Button variant="ghost" size="icon-sm"
-                                  title={order.mpPaymentLinkUrl ? "Copiar link de pago (Mercado Pago)" : "Generar link de pago (Mercado Pago)"}
-                                  onClick={() => handlePaymentLink(order)}
-                                  disabled={generatingPayment.has(order.id)}
-                                  className={order.mpPaymentLinkUrl ? "text-blue-500 hover:text-blue-700" : "text-gray-400 hover:text-blue-600"}>
-                                  {order.mpPaymentLinkUrl ? <Copy className="h-3.5 w-3.5" /> : <CreditCard className="h-3.5 w-3.5" />}
-                                </Button>
-                                {order.mpPaymentLinkUrl && (
-                                  <Button variant="ghost" size="icon-sm"
-                                    title="Enviar link de pago por WhatsApp"
-                                    onClick={() => handlePaymentWhatsApp(order)}
-                                    className="text-gray-400 hover:text-green-600">
-                                    <span className="text-[11px] font-bold leading-none">WA</span>
-                                  </Button>
-                                )}
-                              </>
+                              <Button variant="ghost" size="icon-sm"
+                                title={order.mpPaymentLinkUrl
+                                  ? "Copiar link de pago (ya enviado por WhatsApp)"
+                                  : "Generar link de pago y enviar por WhatsApp"}
+                                onClick={() => handlePaymentLink(order)}
+                                disabled={generatingPayment.has(order.id)}
+                                className={order.mpPaymentLinkUrl ? "text-blue-500 hover:text-blue-700" : "text-gray-400 hover:text-blue-600"}>
+                                {order.mpPaymentLinkUrl ? <Copy className="h-3.5 w-3.5" /> : <CreditCard className="h-3.5 w-3.5" />}
+                              </Button>
                             )}
                           </div>
                         </TableCell>

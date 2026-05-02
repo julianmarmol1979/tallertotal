@@ -227,6 +227,16 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
         return SendAsync(phone, text);
     }
 
+    public Task SendPaymentLinkAsync(ServiceOrder order, string paymentUrl)
+    {
+        var phone = order.Vehicle.Customer.Phone;
+        var name  = order.Vehicle.Customer.Name.Split(' ')[0];
+        var plate = order.Vehicle.LicensePlate;
+        var total = (order.TotalFinal > 0 ? order.TotalFinal : order.TotalEstimate).ToString("N0");
+        var text  = $"💳 Hola *{name}*! Tu *{plate}* está listo. Podés pagar online los *${total}* desde este link:\n{paymentUrl}";
+        return SendAsync(phone, text);
+    }
+
     private async Task SendAsync(string rawPhone, string text)
     {
         if (!IsConfigured)

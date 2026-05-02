@@ -273,6 +273,10 @@ public class ServiceOrdersController(
             var url = await mercadoPago.CreatePaymentLinkAsync(order);
             order.MpPaymentLinkUrl = url;
             await db.SaveChangesAsync();
+
+            // Send payment link to customer via WhatsApp (fire-and-forget)
+            _ = whatsApp.SendPaymentLinkAsync(order, url);
+
             return Ok(new { url });
         }
         catch (Exception ex)
