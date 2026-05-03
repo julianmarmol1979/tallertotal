@@ -237,7 +237,7 @@ public class WhatsAppService(IConfiguration config, ILogger<WhatsAppService> log
         return SendAsync(phone, text);
     }
 
-    private async Task SendAsync(string rawPhone, string text)
+    public async Task SendAsync(string rawPhone, string text)
     {
         if (!IsConfigured)
         {

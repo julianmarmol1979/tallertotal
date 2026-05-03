@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Users, Car, ClipboardList, Wrench, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Car, ClipboardList, Wrench, LogOut, CalendarClock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TallerTotalLogo } from "@/components/TallerTotalLogo";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/ordenes", label: "Órdenes de Servicio", icon: ClipboardList },
+  { href: "/agenda", label: "Agenda de Servicios", icon: CalendarClock },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/vehiculos", label: "Vehículos", icon: Car },
   { href: "/mecanicos", label: "Mecánicos", icon: Wrench },

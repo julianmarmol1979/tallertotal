@@ -14,6 +14,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ServiceOrderLog> ServiceOrderLogs => Set<ServiceOrderLog>();
     public DbSet<Mechanic> Mechanics => Set<Mechanic>();
     public DbSet<AppSetting> AppSettings => Set<AppSetting>();
+    public DbSet<ServiceDocument> ServiceDocuments => Set<ServiceDocument>();
+    public DbSet<ServiceScheduleEntry> ServiceScheduleEntries => Set<ServiceScheduleEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -107,6 +109,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(x => x.Key);
             e.Property(x => x.Key).HasMaxLength(100).IsRequired();
             e.Property(x => x.Value).HasMaxLength(2000).IsRequired();
+        });
+
+        modelBuilder.Entity<ServiceDocument>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.FileName).HasMaxLength(300).IsRequired();
+            e.Property(x => x.StorageUrl).HasMaxLength(1000).IsRequired();
+            e.Property(x => x.VehicleLicensePlate).HasMaxLength(20);
+            e.Property(x => x.VehicleDescription).HasMaxLength(200);
+            e.HasOne(x => x.Tenant)
+                .WithMany()
+                .HasForeignKey(x => x.TenantId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ServiceScheduleEntry>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ServiceType).HasMaxLength(200).IsRequired();
+            e.HasOne(x => x.Document)
+                .WithMany(x => x.Entries)
+                .HasForeignKey(x => x.ServiceDocumentId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ServiceItem>(e =>

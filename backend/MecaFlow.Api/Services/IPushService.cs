@@ -12,4 +12,5 @@ public interface IPushService
     /// Used by the admin panel to diagnose push configuration.
     /// </summary>
     Task<string?> TestAsync(Mechanic mechanic);
+    Task SendAgendaAlertAsync(Mechanic mechanic, string serviceType, string licensePlate, int daysLeft);
 }

@@ -9,6 +9,7 @@ public interface IWhatsAppService
     Task SendQuoteAsync(ServiceOrder order);
     Task SendReminderAsync(ServiceOrder order, int daysSinceActivity);
     Task SendPaymentLinkAsync(ServiceOrder order, string paymentUrl);
+    Task SendAsync(string phone, string text);
     Task<WhatsAppStatus> GetStatusAsync();
     Task<string?> SendTestAsync(string phone, string message);
     /// <summary>

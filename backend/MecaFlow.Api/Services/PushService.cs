@@ -50,6 +50,19 @@ public class PushService(
         });
     }
 
+    public Task SendAgendaAlertAsync(Mechanic mechanic, string serviceType, string licensePlate, int daysLeft)
+    {
+        var body = daysLeft <= 0
+            ? $"{serviceType} para {licensePlate} está VENCIDO"
+            : $"{serviceType} para {licensePlate} vence en {daysLeft} días";
+        return Send(mechanic, new
+        {
+            title = "⚠️ Alerta de mantenimiento",
+            body,
+            url   = "/agenda",
+        });
+    }
+
     public Task<string?> TestAsync(Mechanic mechanic) =>
         SendInternal(mechanic, new
         {

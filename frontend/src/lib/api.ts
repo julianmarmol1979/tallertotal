@@ -121,6 +121,33 @@ export const dashboardApi = {
   getMetrics: () => request<DashboardMetrics>("/dashboard/metrics"),
 };
 
+// Agenda de Servicios
+import type { ServiceDocument } from "@/types/agenda";
+
+export const agendaApi = {
+  getDocuments: () => request<ServiceDocument[]>("/agenda"),
+
+  upload: async (file: File): Promise<{ id: string; fileName: string; storageUrl: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${BASE_URL}/agenda/upload`, { method: "POST", body: formData });
+    if (!res.ok) { const t = await res.text(); throw new Error(t || `HTTP ${res.status}`); }
+    return res.json();
+  },
+
+  parse: (id: string) =>
+    request<{ ok: boolean; entriesFound: number }>(`/agenda/${id}/parse`, { method: "POST" }),
+
+  checkAlerts: (daysBefore = 30) =>
+    request<{ alertsSent: number; message?: string }>(`/agenda/check-alerts?alertDaysBefore=${daysBefore}`, { method: "POST" }),
+
+  deleteDocument: (id: string) =>
+    request<void>(`/agenda/${id}`, { method: "DELETE" }),
+
+  toggleEntry: (id: string) =>
+    request<{ isActive: boolean }>(`/agenda/entries/${id}/toggle`, { method: "PATCH" }),
+};
+
 // Customer portal — calls the backend directly (no auth cookie needed)
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL ?? "";
 

@@ -48,6 +48,11 @@ builder.Services.AddScoped<IEmailService, ResendEmailService>();
 builder.Services.AddHttpClient("mercadopago");
 builder.Services.AddScoped<IMercadoPagoService, MercadoPagoService>();
 
+// Agenda de Servicios — requires SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY
+builder.Services.AddHttpClient("supabase");
+builder.Services.AddHttpClient("anthropic");
+builder.Services.AddScoped<IAgendaService, AgendaService>();
+
 // Web Push — Singleton so it survives beyond HTTP request scopes (needed for fire-and-forget sends)
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPushService, PushService>();
